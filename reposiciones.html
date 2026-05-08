@@ -1639,39 +1639,40 @@ async function loadData() {
   document.getElementById('last-update').textContent = 'Actualizando...';
   document.getElementById('tabla-body').innerHTML = '<tr><td colspan="13"><div class="loading-state"><div class="spinner"></div>Cargando datos...</div></td></tr>';
   try {
-    const [csvRes, ocRes, inboundRes, recRes, nrRes] = await Promise.all([
+    // Una sola llamada para todos los datos del sheet + CSV en paralelo
+    const [csvRes, todoRes] = await Promise.all([
       fetch(CSV_URL + '&t=' + Date.now()),
-      fetch(`${SCRIPT_URL}?tipo=get_ordenes`),
-      fetch(`${SCRIPT_URL}?tipo=get_inbound`),
-      fetch(`${SCRIPT_URL}?tipo=get_recepciones`),
-      fetch(`${SCRIPT_URL}?tipo=get_noreponer`)
+      fetch(`${SCRIPT_URL}?tipo=get_todo`)
     ]);
+
     const text = await csvRes.text();
     window._allDataFull = parseCSV(text).map(mapRow).filter(r => r.sku);
     allData = window._allDataFull.filter(r => r.reponer.toUpperCase() !== 'NO');
 
     try {
-      const ocData = await ocRes.json();
-      if (ocData.ok) { allOrdenes = ocData.ordenes||[]; allLineasOC = ocData.lineas||[]; calcularPendientesOC(); calcularPedidosDesdeOC(); updateOCBadge(); }
-    } catch(e) {}
-
-    try {
-      const inboundData = await inboundRes.json();
-      if (inboundData.ok) inboundStock = inboundData.inbound || {};
-    } catch(e) {}
-
-    try {
-      const recData = await recRes.json();
-      if (recData.ok) allRecepciones = recData.recepciones || [];
-    } catch(e) {}
-
-    try {
-      const nrData = await nrRes.json();
-      if (nrData.ok) {
+      const todoData = await todoRes.json();
+      if (todoData.ok) {
+        allOrdenes = todoData.ordenes || [];
+        allLineasOC = todoData.lineas || [];
+        allRecepciones = todoData.recepciones || [];
         noReponer = {};
-        (nrData.keys || []).forEach(k => { noReponer[k] = true; });
+        (todoData.noReponer || []).forEach(k => { noReponer[k] = true; });
+        calcularPendientesOC();
+        calcularPedidosDesdeOC();
+        updateOCBadge();
       }
-    } catch(e) {}
+    } catch(e) { console.error('Error datos sheet:', e); }
+
+    // Inbound se carga después en segundo plano (es lento por API externa)
+    fetch(`${SCRIPT_URL}?tipo=get_inbound`)
+      .then(r => r.json())
+      .then(inboundData => {
+        if (inboundData.ok) {
+          inboundStock = inboundData.inbound || {};
+          applyFilters(); // re-render con inbound actualizado
+        }
+      })
+      .catch(e => console.warn('Inbound no disponible:', e));
 
     updateScores(allData);
     populateFilter('f-estado', allData.map(r=>calcularEstado(r)));
