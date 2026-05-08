@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Sporcks — Dashboards</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'DM Sans',sans-serif;background:#f5f4f0;color:#1a1a18;min-height:100vh;display:flex;flex-direction:column}
+
+header{background:#fff;border-bottom:1px solid rgba(0,0,0,0.08);padding:0 2.5rem;height:56px;display:flex;align-items:center;justify-content:space-between;box-shadow:0 1px 4px rgba(0,0,0,.04)}
+.brand{display:flex;align-items:center;gap:10px;font-size:16px;font-weight:600;letter-spacing:-.3px}
+.brand-dot{width:9px;height:9px;background:#639922;border-radius:50%}
+.brand-sub{font-size:12px;color:#a0a09b;font-weight:400;margin-left:4px}
+
+main{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:3rem 1.5rem}
+
+.hero{text-align:center;margin-bottom:3rem}
+.hero h1{font-size:32px;font-weight:600;letter-spacing:-.5px;margin-bottom:10px}
+.hero p{font-size:15px;color:#6b6b67;max-width:420px;margin:0 auto;line-height:1.6}
+
+.cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:1.25rem;width:100%;max-width:900px}
+
+.card{background:#fff;border:1px solid rgba(0,0,0,0.08);border-radius:16px;padding:1.75rem;text-decoration:none;color:inherit;transition:all .2s;box-shadow:4px 4px 14px rgba(0,0,0,0.04);display:flex;flex-direction:column;gap:1rem}
+.card:hover{transform:translateY(-3px);box-shadow:6px 8px 24px rgba(0,0,0,0.09);border-color:rgba(0,0,0,0.14)}
+
+.card-icon{width:48px;height:48px;border-radius:12px;display:flex;align-items:center;justify-content:center;font-size:22px;flex-shrink:0}
+.card-icon.green{background:#EAF3DE}
+.card-icon.purple{background:#EEEDFE}
+.card-icon.blue{background:#E6F1FB}
+
+.card-body{}
+.card-title{font-size:16px;font-weight:600;margin-bottom:5px;letter-spacing:-.2px}
+.card-desc{font-size:13px;color:#6b6b67;line-height:1.55}
+
+.card-footer{display:flex;align-items:center;justify-content:space-between;margin-top:auto;padding-top:.75rem;border-top:1px solid rgba(0,0,0,0.06)}
+.card-tag{font-size:11px;font-weight:500;padding:3px 9px;border-radius:20px}
+.tag-green{background:#EAF3DE;color:#3B6D11}
+.tag-purple{background:#EEEDFE;color:#534AB7}
+.tag-blue{background:#E6F1FB;color:#185FA5}
+.card-arrow{font-size:18px;color:#a0a09b;transition:transform .2s}
+.card:hover .card-arrow{transform:translateX(3px);color:#1a1a18}
+
+footer{text-align:center;padding:1.5rem;font-size:12px;color:#a0a09b}
+
+@media(max-width:600px){
+  header{padding:0 1.25rem}
+  main{padding:2rem 1rem}
+  .hero h1{font-size:24px}
+}
+</style>
+</head>
+<body>
+
+<header>
+  <div class="brand">
+    <div class="brand-dot"></div>
+    Sporcks
+    <span class="brand-sub">Intelligence</span>
+  </div>
+  <div style="font-size:12px;color:#a0a09b" id="fecha"></div>
+</header>
+
+<main>
+  <div class="hero">
+    <h1>Panel de control</h1>
+    <p>Accede a los dashboards de análisis de ventas, embajadores y gestión de stock.</p>
+  </div>
+
+  <div class="cards">
+
+    <a class="card" href="expos.html">
+      <div class="card-icon green">🏁</div>
+      <div class="card-body">
+        <div class="card-title">Expos & Eventos</div>
+        <div class="card-desc">Resultados de ventas por expo, rendimiento de modelos, análisis de tallas y recomendación de stock para próximas carreras.</div>
+      </div>
+      <div class="card-footer">
+        <span class="card-tag tag-green">Google Sheets · Live</span>
+        <span class="card-arrow">→</span>
+      </div>
+    </a>
+
+    <a class="card" href="embajadores.html">
+      <div class="card-icon purple">⭐</div>
+      <div class="card-body">
+        <div class="card-title">Embajadores</div>
+        <div class="card-desc">Gestión y seguimiento de embajadores de marca, métricas de rendimiento y estado de cada colaboración.</div>
+      </div>
+      <div class="card-footer">
+        <span class="card-tag tag-purple">Google Sheets · Live</span>
+        <span class="card-arrow">→</span>
+      </div>
+    </a>
+
+    <a class="card" href="reposiciones.html">
+      <div class="card-icon blue">📦</div>
+      <div class="card-body">
+        <div class="card-title">Stock & Reposición</div>
+        <div class="card-desc">Control de inventario, alertas de reposición, análisis de rotación y gestión de pedidos por producto y talla.</div>
+      </div>
+      <div class="card-footer">
+        <span class="card-tag tag-blue">Google Sheets · Live</span>
+        <span class="card-arrow">→</span>
+      </div>
+    </a>
+
+  </div>
+</main>
+
+<footer>Sporcks Intelligence · <span id="year"></span></footer>
+
+<script>
+  document.getElementById('year').textContent = new Date().getFullYear();
+  document.getElementById('fecha').textContent = new Date().toLocaleDateString('es-ES',{weekday:'long',day:'numeric',month:'long'});
+</script>
+</body>
+</html>
