@@ -1,0 +1,579 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Dashboard B2B</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+<style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+:root {
+  --bg: #F5F4F0; --surface: #FFFFFF; --surface2: #EEECEA;
+  --border: rgba(0,0,0,0.08); --border-strong: rgba(0,0,0,0.14);
+  --text: #1A1917; --text-muted: #7A7873; --text-faint: #B0AEA9;
+  --green: #1E7C4A; --green-bg: #E6F5ED; --green-text: #155C36;
+  --amber: #B45309; --amber-bg: #FEF3E2; --amber-text: #92400E;
+  --red: #C53030; --red-bg: #FEF2F2; --red-text: #9B1C1C;
+  --blue: #1A56E8; --blue-bg: #EBF0FD; --blue-text: #1A3FA8;
+  --radius: 12px; --radius-sm: 8px;
+  --shadow: 0 1px 3px rgba(0,0,0,0.06), 0 1px 2px rgba(0,0,0,0.04);
+}
+body { font-family: 'DM Sans', sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; font-size: 14px; line-height: 1.5; }
+.sidebar { position: fixed; top: 0; left: 0; width: 220px; height: 100vh; background: var(--surface); border-right: 1px solid var(--border); display: flex; flex-direction: column; padding: 1.5rem 1rem; z-index: 100; overflow-y: auto; }
+.logo { display: flex; align-items: center; gap: 10px; padding: 0 0.5rem; margin-bottom: 2rem; }
+.logo-mark { width: 28px; height: 28px; background: var(--text); border-radius: 7px; display: flex; align-items: center; justify-content: center; }
+.logo-mark svg { width: 16px; height: 16px; fill: white; }
+.logo-name { font-size: 14px; font-weight: 500; letter-spacing: -0.02em; }
+.nav-label { font-size: 10px; font-weight: 500; color: var(--text-faint); letter-spacing: 0.08em; text-transform: uppercase; padding: 0 0.5rem; margin-bottom: 0.5rem; margin-top: 1rem; }
+.nav-item { display: flex; align-items: center; gap: 8px; padding: 7px 10px; border-radius: var(--radius-sm); color: var(--text-muted); font-size: 13px; cursor: pointer; transition: all 0.15s; margin-bottom: 2px; }
+.nav-item:hover { background: var(--surface2); color: var(--text); }
+.nav-item.active { background: var(--text); color: white; }
+.nav-item svg { width: 15px; height: 15px; flex-shrink: 0; }
+.sidebar-footer { margin-top: auto; padding-top: 1rem; border-top: 1px solid var(--border); }
+.last-update { font-size: 11px; color: var(--text-faint); padding: 0 0.5rem; font-family: 'DM Mono', monospace; }
+.btn-refresh { display: flex; align-items: center; gap: 6px; width: 100%; padding: 7px 10px; margin-top: 8px; background: transparent; border: 1px solid var(--border-strong); border-radius: var(--radius-sm); color: var(--text); font-size: 12px; font-family: 'DM Sans', sans-serif; cursor: pointer; transition: all 0.15s; }
+.btn-refresh:hover { background: var(--surface2); }
+.btn-refresh svg { width: 13px; height: 13px; }
+.main { margin-left: 220px; padding: 2rem 2rem 3rem; min-height: 100vh; }
+.view { display: none; }
+.view.active { display: block; }
+.page-header { display: flex; align-items: flex-end; justify-content: space-between; margin-bottom: 1.75rem; flex-wrap: wrap; gap: 12px; }
+.page-title { font-size: 22px; font-weight: 500; letter-spacing: -0.03em; }
+.page-sub { font-size: 13px; color: var(--text-muted); margin-top: 2px; }
+.filter-row { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+.filter-select { padding: 6px 10px; border-radius: 20px; border: 1px solid var(--border-strong); background: var(--surface); color: var(--text); font-size: 12px; font-family: 'DM Sans', sans-serif; cursor: pointer; appearance: none; -webkit-appearance: none; background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 16 16' fill='none' stroke='%237A7873' stroke-width='1.5'%3E%3Cpath d='M4 6l4 4 4-4'/%3E%3C/svg%3E"); background-repeat: no-repeat; background-position: right 8px center; padding-right: 26px; transition: all 0.15s; }
+.filter-select:focus { outline: none; border-color: var(--text); }
+.filter-select.active-filter { background-color: var(--text); color: white; background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 16 16' fill='none' stroke='white' stroke-width='1.5'%3E%3Cpath d='M4 6l4 4 4-4'/%3E%3C/svg%3E"); border-color: var(--text); }
+.filter-sep { width: 1px; height: 20px; background: var(--border-strong); margin: 0 2px; }
+.filter-btn { padding: 6px 14px; border-radius: 20px; border: 1px solid var(--border-strong); background: transparent; color: var(--text-muted); font-size: 12px; font-family: 'DM Sans', sans-serif; cursor: pointer; transition: all 0.15s; }
+.filter-btn:hover { border-color: var(--text); color: var(--text); }
+.filter-btn.active { background: var(--text); color: white; border-color: var(--text); }
+.metrics { display: grid; grid-template-columns: repeat(5, 1fr); gap: 10px; margin-bottom: 1.25rem; }
+.metric { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 1.1rem 1.1rem 1rem; box-shadow: var(--shadow); transition: transform 0.15s; }
+.metric:hover { transform: translateY(-1px); }
+.metric-label { font-size: 11px; color: var(--text-muted); margin-bottom: 8px; }
+.metric-value { font-size: 24px; font-weight: 300; letter-spacing: -0.03em; color: var(--text); font-family: 'DM Mono', monospace; }
+.metric-value.green { color: var(--green); }
+.metric-value.red { color: var(--red); }
+.metric-footer { margin-top: 8px; font-size: 11px; color: var(--text-faint); }
+.grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 12px; }
+.grid3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 12px; margin-bottom: 12px; }
+.card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 1.25rem; box-shadow: var(--shadow); margin-bottom: 12px; }
+.card-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 1rem; flex-wrap: wrap; gap: 8px; }
+.card-title { font-size: 11px; font-weight: 500; color: var(--text-muted); letter-spacing: 0.07em; text-transform: uppercase; }
+.card-count { font-size: 11px; color: var(--text-faint); font-family: 'DM Mono', monospace; }
+.data-row { display: flex; align-items: center; gap: 10px; padding: 7px 0; border-bottom: 1px solid var(--border); font-size: 13px; }
+.data-row:last-child { border-bottom: none; }
+.data-name { flex: 1; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; color: var(--text); }
+.data-sub { font-size: 11px; color: var(--text-faint); margin-top: 1px; }
+.data-val { font-weight: 500; font-family: 'DM Mono', monospace; font-size: 12px; color: var(--text); flex-shrink: 0; }
+.data-muted { color: var(--text-muted); font-size: 12px; flex-shrink: 0; }
+.avatar { width: 30px; height: 30px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 10px; font-weight: 500; flex-shrink: 0; }
+.badge { display: inline-flex; align-items: center; padding: 2px 8px; border-radius: 20px; font-size: 10px; font-weight: 500; flex-shrink: 0; white-space: nowrap; }
+.badge-green { background: var(--green-bg); color: var(--green-text); }
+.badge-amber { background: var(--amber-bg); color: var(--amber-text); }
+.badge-red { background: var(--red-bg); color: var(--red-text); }
+.badge-blue { background: var(--blue-bg); color: var(--blue-text); }
+.badge-gray { background: var(--surface2); color: var(--text-muted); }
+.bar-wrap { flex: 1; height: 4px; background: var(--surface2); border-radius: 2px; overflow: hidden; min-width: 40px; }
+.bar-fill { height: 100%; border-radius: 2px; transition: width 0.5s ease; }
+.act-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 0 1.5rem; }
+.act-row { display: flex; gap: 10px; padding: 8px 0; border-bottom: 1px solid var(--border); align-items: flex-start; }
+.act-row:last-child { border-bottom: none; }
+.act-dot { width: 8px; height: 8px; border-radius: 50%; margin-top: 5px; flex-shrink: 0; }
+.act-desc { font-size: 13px; color: var(--text); }
+.act-meta { font-size: 11px; color: var(--text-faint); margin-top: 2px; }
+.fact-table { width: 100%; border-collapse: collapse; font-size: 12px; }
+.fact-table th { text-align: left; padding: 6px 8px; color: var(--text-faint); font-weight: 400; font-size: 11px; border-bottom: 1px solid var(--border); white-space: nowrap; }
+.fact-table td { padding: 7px 8px; border-bottom: 1px solid var(--border); color: var(--text); vertical-align: middle; }
+.fact-table tr:last-child td { border-bottom: none; }
+.fact-table tr:hover td { background: var(--surface2); }
+.mono { font-family: 'DM Mono', monospace; font-size: 11px; }
+.table-wrap { overflow-x: auto; }
+.deuda-cliente { margin-bottom: 8px; border: 1px solid var(--border); border-radius: var(--radius-sm); overflow: hidden; }
+.deuda-header { display: flex; align-items: center; gap: 10px; padding: 10px 14px; background: var(--surface2); cursor: pointer; user-select: none; }
+.deuda-header:hover { background: #E5E3DE; }
+.deuda-nombre { flex: 1; font-size: 13px; font-weight: 500; color: var(--text); }
+.deuda-total { font-family: 'DM Mono', monospace; font-size: 13px; font-weight: 500; color: var(--red); }
+.deuda-body { display: none; padding: 0 14px; }
+.deuda-body.open { display: block; }
+.empty { font-size: 13px; color: var(--text-faint); padding: 1.5rem; text-align: center; }
+.error-box { background: var(--red-bg); border: 1px solid rgba(197,48,48,0.15); border-radius: var(--radius-sm); padding: 12px 16px; font-size: 13px; color: var(--red-text); margin-bottom: 1.25rem; display: none; }
+@keyframes spin { to { transform: rotate(360deg); } }
+@media (max-width: 1100px) { .metrics { grid-template-columns: repeat(3, 1fr); } }
+@media (max-width: 900px) {
+  .sidebar { width: 60px; padding: 1rem 0.5rem; }
+  .logo-name, .nav-label, .nav-item span, .last-update, .btn-refresh span { display: none; }
+  .nav-item { justify-content: center; }
+  .main { margin-left: 60px; padding: 1.5rem 1rem 3rem; }
+}
+@media (max-width: 680px) {
+  .grid2, .grid3 { grid-template-columns: 1fr; }
+  .metrics { grid-template-columns: repeat(2, 1fr); }
+  .act-grid { grid-template-columns: 1fr; }
+}
+</style>
+</head>
+<body>
+
+<aside class="sidebar">
+  <div class="logo">
+    <div class="logo-mark"><svg viewBox="0 0 16 16"><path d="M2 2h5v5H2zM9 2h5v5H9zM2 9h5v5H2zM9 9h5v5H9z"/></svg></div>
+    <span class="logo-name">B2B Dashboard</span>
+  </div>
+  <div class="nav-label">Vistas</div>
+  <div class="nav-item active" onclick="showView('resumen',this)">
+    <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="1" y="1" width="6" height="6" rx="1.5"/><rect x="9" y="1" width="6" height="6" rx="1.5"/><rect x="1" y="9" width="6" height="6" rx="1.5"/><rect x="9" y="9" width="6" height="6" rx="1.5"/></svg>
+    <span>Resumen</span>
+  </div>
+  <div class="nav-item" onclick="showView('facturacion',this)">
+    <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M3 2h10a1 1 0 011 1v10a1 1 0 01-1 1H3a1 1 0 01-1-1V3a1 1 0 011-1z"/><path d="M5 6h6M5 9h4"/></svg>
+    <span>Facturación</span>
+  </div>
+  <div class="nav-item" onclick="showView('deuda',this)">
+    <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="8" cy="8" r="6"/><path d="M8 5v3l1.5 1.5"/></svg>
+    <span>Pendiente cobro</span>
+  </div>
+  <div class="nav-item" onclick="showView('leads',this)">
+    <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M2 14l3-4 3 2 3-5 3 3"/></svg>
+    <span>Leads</span>
+  </div>
+  <div class="sidebar-footer">
+    <p class="last-update" id="lastUpdate">—</p>
+    <button class="btn-refresh" onclick="loadData()">
+      <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" id="refreshIcon"><path d="M13.5 8A5.5 5.5 0 112.5 5.5M2 2.5V6h3.5"/></svg>
+      <span>Actualizar</span>
+    </button>
+  </div>
+</aside>
+
+<main class="main">
+  <div id="errorBox" class="error-box"></div>
+
+  <!-- RESUMEN -->
+  <div id="view-resumen" class="view active">
+    <div class="page-header">
+      <div><h1 class="page-title">Visión general</h1><p class="page-sub" id="subtitleResumen">Cargando...</p></div>
+      <div class="filter-row" id="filterResumen"></div>
+    </div>
+    <div id="metricsRow" class="metrics"></div>
+    <div class="card">
+      <div class="card-header"><span class="card-title">Facturación por mes</span></div>
+      <div style="position:relative;height:200px"><canvas id="chartMes" role="img" aria-label="Facturación mensual">Evolución mensual.</canvas></div>
+    </div>
+    <div class="grid3">
+      <div class="card" style="margin-bottom:0"><div class="card-header"><span class="card-title">Top clientes</span></div><div id="clientList"><div class="empty">—</div></div></div>
+      <div class="card" style="margin-bottom:0"><div class="card-header"><span class="card-title">Por país / destino</span></div><div id="paisList"><div class="empty">—</div></div></div>
+      <div class="card" style="margin-bottom:0"><div class="card-header"><span class="card-title">Pipeline leads</span></div><div id="leadsListResumen"><div class="empty">—</div></div></div>
+    </div>
+    <div class="card" style="margin-top:12px">
+      <div class="card-header"><span class="card-title">Actividad reciente</span></div>
+      <div class="act-grid" id="actList"><div class="empty" style="grid-column:1/-1">—</div></div>
+    </div>
+  </div>
+
+  <!-- FACTURACIÓN -->
+  <div id="view-facturacion" class="view">
+    <div class="page-header">
+      <div><h1 class="page-title">Facturación</h1><p class="page-sub" id="subtitleFact">—</p></div>
+      <div class="filter-row" id="filterFact"></div>
+    </div>
+    <div class="grid3" style="margin-bottom:12px">
+      <div class="metric" style="box-shadow:var(--shadow)"><div class="metric-label">Total facturado</div><div class="metric-value" id="fTotalFact">—</div><div class="metric-footer" id="fTotalSub">—</div></div>
+      <div class="metric" style="box-shadow:var(--shadow)"><div class="metric-label">Cobrado</div><div class="metric-value green" id="fCobrado">—</div><div class="metric-footer" id="fCobradoSub">—</div></div>
+      <div class="metric" style="box-shadow:var(--shadow)"><div class="metric-label">Pendiente</div><div class="metric-value red" id="fPendiente">—</div><div class="metric-footer" id="fPendienteSub">—</div></div>
+    </div>
+    <div class="card">
+      <div class="card-header"><span class="card-title">Resumen por cliente</span></div>
+      <div id="factResumenCliente"><div class="empty">—</div></div>
+    </div>
+    <div class="card">
+      <div class="card-header">
+        <span class="card-title">Listado de facturas</span>
+        <div style="display:flex;gap:6px;flex-wrap:wrap">
+          <button class="filter-btn active" onclick="setEstadoFact('all',this)" style="font-size:11px;padding:4px 10px">Todas</button>
+          <button class="filter-btn" onclick="setEstadoFact('PAGADO',this)" style="font-size:11px;padding:4px 10px">Pagadas</button>
+          <button class="filter-btn" onclick="setEstadoFact('NO PAGADO',this)" style="font-size:11px;padding:4px 10px">No pagadas</button>
+          <button class="filter-btn" onclick="setEstadoFact('COMPENSADO',this)" style="font-size:11px;padding:4px 10px">Compensadas</button>
+          <button class="filter-btn" onclick="setEstadoFact('RECTIFICATIVA',this)" style="font-size:11px;padding:4px 10px">Rectificativas</button>
+        </div>
+      </div>
+      <div class="table-wrap" id="factTabla"><div class="empty">—</div></div>
+    </div>
+  </div>
+
+  <!-- DEUDA -->
+  <div id="view-deuda" class="view">
+    <div class="page-header">
+      <div><h1 class="page-title">Pendiente de cobro</h1><p class="page-sub" id="subtitleDeuda">—</p></div>
+      <div class="filter-row" id="filterDeuda"></div>
+    </div>
+    <div class="grid2" style="margin-bottom:12px">
+      <div class="metric" style="box-shadow:var(--shadow)"><div class="metric-label">Total pendiente</div><div class="metric-value red" id="dTotal">—</div><div class="metric-footer" id="dTotalSub">—</div></div>
+      <div class="metric" style="box-shadow:var(--shadow)"><div class="metric-label">Clientes con deuda</div><div class="metric-value" id="dClientes">—</div><div class="metric-footer">tiendas</div></div>
+    </div>
+    <div class="card">
+      <div class="card-header"><span class="card-title">Facturas pendientes por cliente</span></div>
+      <div id="deudaList"><div class="empty">No hay facturas pendientes</div></div>
+    </div>
+  </div>
+
+  <!-- LEADS -->
+  <div id="view-leads" class="view">
+    <div class="page-header">
+      <div><h1 class="page-title">Pipeline de leads</h1><p class="page-sub" id="subtitleLeads">—</p></div>
+    </div>
+    <div class="grid3" style="margin-bottom:12px">
+      <div class="metric" style="box-shadow:var(--shadow)"><div class="metric-label">Leads activos</div><div class="metric-value" id="lActivos">—</div><div class="metric-footer">en progreso</div></div>
+      <div class="metric" style="box-shadow:var(--shadow)"><div class="metric-label">Valor estimado</div><div class="metric-value" id="lValor">—</div><div class="metric-footer" id="lValorSub">—</div></div>
+      <div class="metric" style="box-shadow:var(--shadow)"><div class="metric-label">Cerrados ganados</div><div class="metric-value green" id="lGanados">—</div><div class="metric-footer">total</div></div>
+    </div>
+    <div class="card">
+      <div class="card-header"><span class="card-title">Todos los leads</span><span class="card-count" id="leadsCount">—</span></div>
+      <div class="table-wrap" id="leadsTabla"><div class="empty">Sin leads registrados aún</div></div>
+    </div>
+  </div>
+</main>
+
+<script>
+const SHEET_URL = 'https://script.google.com/macros/s/AKfycbwkxYM4wdG1skPM79KczVfkO95tpT5C3tH4tg3LrnYavx1uknFOTkuDGR0yNT6AtjeT/exec';
+let RAW = null, activeFilter = 'all', activeQYear = 'all', activeEstadoFact = 'all', chartMes = null;
+
+const AVATAR_COLORS = [['#EBF0FD','#1A3FA8'],['#E6F5ED','#155C36'],['#F3F0FD','#4C3BAF'],['#FEF3E2','#92400E'],['#FEF2F2','#9B1C1C'],['#E6F5ED','#0F5E5E']];
+
+function parseNum(v) {
+  if (!v && v !== 0) return 0;
+  const n = parseFloat(String(v).replace(/[€\s]/g,'').replace(',','.'));
+  return isNaN(n) ? 0 : n;
+}
+function fmtEur(n) {
+  if (n >= 1000000) return '€'+(n/1000000).toFixed(2)+'M';
+  if (n >= 1000) return '€'+(n/1000).toFixed(1)+'k';
+  return '€'+Math.round(n);
+}
+function getInitials(name) {
+  if (!name) return '?';
+  return name.trim().split(/\s+/).slice(0,2).map(w=>w[0]?.toUpperCase()||'').join('');
+}
+
+function parseFecha(v) {
+  if (!v) return null;
+  const s = String(v).trim();
+  // DD/MM/YYYY o DD-MM-YYYY
+  let m = s.match(/^(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{4})$/);
+  if (m) return {d:+m[1], mo:+m[2], y:+m[3]};
+  // YYYY-MM-DD o YYYY/MM/DD (sin hora)
+  m = s.match(/^(\d{4})[\/\-](\d{1,2})[\/\-](\d{1,2})$/);
+  if (m) return {d:+m[3], mo:+m[2], y:+m[1]};
+  // ISO 8601: 2025-01-02T23:00:00.000Z
+  m = s.match(/^(\d{4})-(\d{2})-(\d{2})T/);
+  if (m) return {d:+m[3], mo:+m[2], y:+m[1]};
+  return null;
+}
+function getAnyo(v) { const f=parseFecha(v); return f?String(f.y):''; }
+function getTrimestre(v) {
+  const f=parseFecha(v); if(!f) return '';
+  if(f.mo<=3) return 'Q1'; if(f.mo<=6) return 'Q2'; if(f.mo<=9) return 'Q3'; return 'Q4';
+}
+function getMesKey(v) {
+  const f=parseFecha(v); if(!f) return 'S/F';
+  return `${f.y}-${String(f.mo).padStart(2,'0')}`;
+}
+function getFechaDisplay(v) {
+  const f=parseFecha(v); if(!f) return v||'—';
+  return `${String(f.d).padStart(2,'0')}/${String(f.mo).padStart(2,'0')}/${f.y}`;
+}
+
+function getAnyoFromRow(r) {
+  const anyo = getAnyo(r['FECHA']);
+  if (anyo) return anyo;
+  const nf = String(r['Nº FACTURA']||'').replace(/\D/g,'');
+  if (nf.length >= 2) {
+    const prefix = nf.substring(0,2);
+    if (/^\d{2}$/.test(prefix) && +prefix >= 20) return '20'+prefix;
+  }
+  return '';
+}
+
+function filterFact(rows) {
+  const yearSel = activeQYear;
+  const qSel = ['Q1','Q2','Q3','Q4'].includes(activeFilter) ? activeFilter : 'all';
+
+  return rows.filter(r => {
+    const rowYear = getAnyoFromRow(r);
+    const rowTrim = String(r['TRIMESTRE']||'').trim(); // "1Q","2Q"...
+
+    const passYear = yearSel === 'all' || rowYear === yearSel;
+    const passQ = qSel === 'all' || rowTrim === (qSel.replace('Q','') + 'Q');
+
+    return passYear && passQ;
+  });
+}
+
+const pagoStatus = r => String(r['PAGO']||'').toUpperCase().trim();
+const isExcluida = r => ['COMPENSADO','RECTIFICATIVA'].includes(pagoStatus(r));
+
+const STAGE_BADGE = {'Contacto':'badge-blue','Propuesta':'badge-blue','Negociación':'badge-amber','Cerrado ganado':'badge-green','Cerrado perdido':'badge-red'};
+const ESTADO_BADGE = {'PAGADO':'badge-green','NO PAGADO':'badge-red','COMPENSADO':'badge-amber','RECTIFICATIVA':'badge-gray'};
+const ACT_DOTS = {'Llamada':'#3B82F6','Email':'#8B5CF6','Reunión':'#10B981','Visita':'#F59E0B','Pedido':'#1E7C4A','Incidencia':'#EF4444'};
+
+function getAvailableYears() {
+  if (!RAW || !RAW.facturacion) return ['2025','2026'];
+  const years = new Set();
+  (RAW.facturacion || []).forEach(r => {
+    const y = getAnyoFromRow(r);
+    if (y) years.add(y);
+  });
+  return [...years].sort();
+}
+
+function buildFilters(id) {
+  const years = getAvailableYears();
+  const activeYear = ['Q1','Q2','Q3','Q4'].includes(activeFilter) ? activeQYear : (['all'].includes(activeFilter) ? 'all' : activeFilter);
+  const activeQ = ['Q1','Q2','Q3','Q4'].includes(activeFilter) ? activeFilter : 'all';
+
+  const yearOpts = `<option value="all" ${activeYear==='all'?'selected':''}>Todos los años</option>`
+    + years.map(y => `<option value="${y}" ${activeYear===y?'selected':''}>${y}</option>`).join('');
+
+  const qOpts = ['all','Q1','Q2','Q3','Q4'].map(q =>
+    `<option value="${q}" ${activeQ===q?'selected':''}>${q==='all'?'Todos los trimestres':q}</option>`
+  ).join('');
+
+  const yearActive = activeYear !== 'all';
+  const qActive = activeQ !== 'all';
+
+  document.getElementById(id).innerHTML = `
+    <select class="filter-select ${yearActive&&!qActive?'active-filter':''}" onchange="setFilterYear(this.value)">
+      ${yearOpts}
+    </select>
+    <div class="filter-sep"></div>
+    <select class="filter-select ${qActive?'active-filter':''}" onchange="setFilterQ(this.value)">
+      ${qOpts}
+    </select>
+  `;
+}
+
+function setFilterYear(year) {
+  activeQYear = year;
+  activeFilter = year === 'all' ? 'all' : year;
+  // Reset Q cuando cambia año
+  document.querySelectorAll('.filter-select').forEach(s => {
+    if (s.onchange && String(s.getAttribute('onchange')).includes('setFilterQ')) s.value = 'all';
+  });
+  if (RAW) renderAll(RAW);
+}
+
+function setFilterQ(q) {
+  if (q === 'all') {
+    activeFilter = activeQYear !== 'all' ? activeQYear : 'all';
+  } else {
+    activeFilter = q;
+  }
+  if (RAW) renderAll(RAW);
+}
+
+function setFilter(val) {
+  activeFilter = val;
+  if (RAW) renderAll(RAW);
+}
+
+function setEstadoFact(val, btn) {
+  activeEstadoFact = val;
+  document.querySelectorAll('.filter-btn[onclick^="setEstadoFact"]').forEach(b=>b.classList.remove('active'));
+  btn.classList.add('active');
+  if (RAW) renderFactTabla(filterFact(RAW.facturacion||[]));
+}
+
+function showView(name, el) {
+  document.querySelectorAll('.view').forEach(v=>v.classList.remove('active'));
+  document.querySelectorAll('.nav-item').forEach(n=>n.classList.remove('active'));
+  document.getElementById('view-'+name).classList.add('active');
+  el.classList.add('active');
+}
+
+function sortByFechaDesc(rows) {
+  return [...rows].sort((a,b)=>{
+    const fa=parseFecha(a['FECHA']),fb=parseFecha(b['FECHA']);
+    if(!fa||!fb) return 0;
+    return (fb.y*10000+fb.mo*100+fb.d)-(fa.y*10000+fa.mo*100+fa.d);
+  });
+}
+
+/* ── RESUMEN ── */
+function renderResumen(fact, leads, clientes, actividad) {
+  buildFilters('filterResumen');
+  const pagadas=fact.filter(r=>pagoStatus(r)==='PAGADO');
+  const noPagadas=fact.filter(r=>pagoStatus(r)==='NO PAGADO');
+  const totalFact=[...pagadas,...noPagadas].reduce((s,r)=>s+parseNum(r['IMPORTE']),0);
+  const totalCobrado=pagadas.reduce((s,r)=>s+parseNum(r['IMPORTE']),0);
+  const totalPendiente=noPagadas.reduce((s,r)=>s+parseNum(r['IMPORTE']),0);
+  const totalPares=fact.filter(r=>!isExcluida(r)).reduce((s,r)=>s+parseNum(r['PARES']),0);
+  const leadsActivos=leads.filter(r=>r['Etapa']&&!['Cerrado ganado','Cerrado perdido'].includes(r['Etapa'])).length;
+  const valorPipeline=leads.filter(r=>r['Etapa']!=='Cerrado perdido').reduce((s,r)=>s+parseNum(r['Valor estimado (€)']),0);
+  const nTiendas=new Set(fact.filter(r=>!isExcluida(r)).map(r=>r['NOMBRE TIENDA']).filter(Boolean)).size;
+
+  document.getElementById('subtitleResumen').textContent=`${pagadas.length+noPagadas.length} facturas · ${nTiendas} tiendas · filtro: ${activeFilter==='all'?'todo':activeFilter}`;
+  document.getElementById('metricsRow').innerHTML=[
+    {label:'Facturación total',val:fmtEur(totalFact),sub:`${pagadas.length+noPagadas.length} facturas`,cls:''},
+    {label:'Cobrado',val:fmtEur(totalCobrado),sub:`${pagadas.length} pagadas`,cls:'green'},
+    {label:'Pendiente cobro',val:fmtEur(totalPendiente),sub:`${noPagadas.length} facturas`,cls:totalPendiente>0?'red':''},
+    {label:'Pares vendidos',val:Math.round(totalPares).toLocaleString('es'),sub:`${nTiendas} tiendas`,cls:''},
+    {label:'Pipeline leads',val:fmtEur(valorPipeline),sub:`${leadsActivos} activos`,cls:''},
+  ].map(m=>`<div class="metric"><div class="metric-label">${m.label}</div><div class="metric-value ${m.cls}">${m.val}</div><div class="metric-footer">${m.sub}</div></div>`).join('');
+
+  const byMes={};
+  fact.filter(r=>!isExcluida(r)).forEach(r=>{const k=getMesKey(r['FECHA']);byMes[k]=(byMes[k]||0)+parseNum(r['IMPORTE']);});
+  const meses=Object.keys(byMes).sort().slice(-10);
+  const vals=meses.map(m=>byMes[m]);
+  if(chartMes) chartMes.destroy();
+  chartMes=new Chart(document.getElementById('chartMes').getContext('2d'),{
+    type:'bar',
+    data:{labels:meses,datasets:[{data:vals,backgroundColor:vals.map((_,i)=>i===vals.length-1?'#1A1917':'#E2E0DB'),borderRadius:5,borderSkipped:false}]},
+    options:{responsive:true,maintainAspectRatio:false,
+      plugins:{legend:{display:false},tooltip:{callbacks:{label:v=>fmtEur(v.raw)}}},
+      scales:{
+        x:{grid:{display:false},ticks:{font:{family:'DM Mono',size:11},color:'#B0AEA9',autoSkip:false,maxRotation:35}},
+        y:{grid:{color:'rgba(0,0,0,0.04)'},border:{display:false},ticks:{font:{family:'DM Mono',size:11},color:'#B0AEA9',callback:v=>fmtEur(v)}}
+      }
+    }
+  });
+
+  const byT={};
+  fact.filter(r=>!isExcluida(r)).forEach(r=>{const t=r['NOMBRE TIENDA'];if(t)byT[t]=(byT[t]||0)+parseNum(r['IMPORTE']);});
+  const topC=Object.entries(byT).sort((a,b)=>b[1]-a[1]).slice(0,6);
+  document.getElementById('clientList').innerHTML=topC.length===0?'<div class="empty">Sin datos</div>':topC.map(([n,v],i)=>{
+    const[bg,tc]=AVATAR_COLORS[i%AVATAR_COLORS.length];
+    return `<div class="data-row"><div class="avatar" style="background:${bg};color:${tc}">${getInitials(n)}</div><div class="data-name">${n}</div><span class="data-muted">${totalFact>0?Math.round(v/totalFact*100):0}%</span><span class="data-val">${fmtEur(v)}</span></div>`;
+  }).join('');
+
+  const byP={};
+  fact.filter(r=>!isExcluida(r)).forEach(r=>{
+    const cli=clientes.find(c=>c['Company']===r['NOMBRE TIENDA']);
+    const p=(cli&&(cli['Country']||cli['Country Code']))||r['DESTINO']||'Desconocido';
+    byP[p]=(byP[p]||0)+parseNum(r['IMPORTE']);
+  });
+  const topP=Object.entries(byP).sort((a,b)=>b[1]-a[1]).slice(0,6);
+  const maxP=topP[0]?.[1]||1;
+  document.getElementById('paisList').innerHTML=topP.length===0?'<div class="empty">Sin datos</div>':topP.map(([p,v])=>`<div class="data-row"><span class="data-name">${p}</span><div class="bar-wrap"><div class="bar-fill" style="width:${Math.round(v/maxP*100)}%;background:#1A1917"></div></div><span class="data-val">${fmtEur(v)}</span></div>`).join('');
+
+  const leadsRec=leads.filter(r=>r['Empresa']).slice(-6).reverse();
+  document.getElementById('leadsListResumen').innerHTML=leadsRec.length===0?'<div class="empty">Sin leads</div>':leadsRec.map(l=>{
+    const e=l['Etapa']||'Contacto';
+    return `<div class="data-row"><div style="flex:1;min-width:0"><div class="data-name">${l['Empresa']||'—'}</div>${l['Valor estimado (€)']?`<div class="data-sub">${fmtEur(parseNum(l['Valor estimado (€)']))}</div>`:''}</div><span class="badge ${STAGE_BADGE[e]||'badge-blue'}">${e}</span></div>`;
+  }).join('');
+
+  const actRec=actividad.filter(r=>r['Descripción']||r['Nombre tienda']).slice(-8).reverse();
+  document.getElementById('actList').innerHTML=actRec.length===0?'<div class="empty" style="grid-column:1/-1">Sin actividad</div>':actRec.map(a=>{
+    const dot=ACT_DOTS[a['Tipo']]||'#B0AEA9';
+    return `<div class="act-row"><div class="act-dot" style="background:${dot}"></div><div><div class="act-desc">${a['Descripción']||a['Nombre tienda']||'—'}</div><div class="act-meta">${a['Fecha']||''}${a['Nombre tienda']?' · '+a['Nombre tienda']:''}</div></div></div>`;
+  }).join('');
+}
+
+/* ── FACTURACIÓN ── */
+function renderFacturacion(fact) {
+  buildFilters('filterFact');
+  const pagadas=fact.filter(r=>pagoStatus(r)==='PAGADO');
+  const noPagadas=fact.filter(r=>pagoStatus(r)==='NO PAGADO');
+  const totalFact=[...pagadas,...noPagadas].reduce((s,r)=>s+parseNum(r['IMPORTE']),0);
+  document.getElementById('fTotalFact').textContent=fmtEur(totalFact);
+  document.getElementById('fTotalSub').textContent=`${pagadas.length+noPagadas.length} facturas`;
+  document.getElementById('fCobrado').textContent=fmtEur(pagadas.reduce((s,r)=>s+parseNum(r['IMPORTE']),0));
+  document.getElementById('fCobradoSub').textContent=`${pagadas.length} pagadas`;
+  const totalPend=noPagadas.reduce((s,r)=>s+parseNum(r['IMPORTE']),0);
+  document.getElementById('fPendiente').textContent=fmtEur(totalPend);
+  document.getElementById('fPendienteSub').textContent=`${noPagadas.length} sin cobrar`;
+  document.getElementById('subtitleFact').textContent=`${fact.length} registros · filtro: ${activeFilter==='all'?'todo':activeFilter}`;
+
+  const byC={};
+  fact.filter(r=>!isExcluida(r)).forEach(r=>{
+    const t=r['NOMBRE TIENDA']||'Sin nombre';
+    if(!byC[t]) byC[t]={total:0,cobrado:0,pendiente:0,n:0};
+    const imp=parseNum(r['IMPORTE']);
+    byC[t].n++;
+    if(pagoStatus(r)==='PAGADO') byC[t].cobrado+=imp; else byC[t].pendiente+=imp;
+    byC[t].total+=imp;
+  });
+  const cSorted=Object.entries(byC).sort((a,b)=>b[1].total-a[1].total);
+  document.getElementById('factResumenCliente').innerHTML=cSorted.length===0?'<div class="empty">Sin datos</div>':`<div class="table-wrap"><table class="fact-table"><thead><tr><th>Cliente</th><th>Facturas</th><th>Total</th><th>Cobrado</th><th>Pendiente</th></tr></thead><tbody>${cSorted.map(([n,d])=>`<tr><td>${n}</td><td class="mono">${d.n}</td><td class="mono">${fmtEur(d.total)}</td><td class="mono" style="color:var(--green)">${fmtEur(d.cobrado)}</td><td class="mono" style="color:${d.pendiente>0?'var(--red)':'var(--text-faint)'}">${d.pendiente>0?fmtEur(d.pendiente):'—'}</td></tr>`).join('')}</tbody></table></div>`;
+
+  renderFactTabla(fact);
+}
+
+function renderFactTabla(fact) {
+  const filtradas=activeEstadoFact==='all'?fact:fact.filter(r=>pagoStatus(r)===activeEstadoFact);
+  document.getElementById('factTabla').innerHTML=filtradas.length===0?'<div class="empty">Sin facturas con este filtro</div>':`<table class="fact-table"><thead><tr><th>Nº Factura</th><th>Cliente</th><th>Fecha</th><th>Destino</th><th>Pares</th><th>Importe</th><th>Estado</th></tr></thead><tbody>${sortByFechaDesc(filtradas).map(r=>`<tr><td class="mono">${r['Nº FACTURA']||'—'}</td><td>${r['NOMBRE TIENDA']||'—'}</td><td class="mono">${getFechaDisplay(r['FECHA'])}</td><td>${r['DESTINO']||'—'}</td><td class="mono">${r['PARES']||'—'}</td><td class="mono" style="font-weight:500">${r['IMPORTE']?fmtEur(parseNum(r['IMPORTE'])):'—'}</td><td><span class="badge ${ESTADO_BADGE[pagoStatus(r)]||'badge-gray'}">${pagoStatus(r)||'—'}</span></td></tr>`).join('')}</tbody></table>`;
+}
+
+/* ── DEUDA ── */
+function renderDeuda(fact) {
+  buildFilters('filterDeuda');
+  const noPagadas=fact.filter(r=>pagoStatus(r)==='NO PAGADO');
+  const totalDeuda=noPagadas.reduce((s,r)=>s+parseNum(r['IMPORTE']),0);
+  const byC={};
+  noPagadas.forEach(r=>{const t=r['NOMBRE TIENDA']||'Sin nombre';if(!byC[t])byC[t]=[];byC[t].push(r);});
+  const sorted=Object.entries(byC).sort((a,b)=>b[1].reduce((s,r)=>s+parseNum(r['IMPORTE']),0)-a[1].reduce((s,r)=>s+parseNum(r['IMPORTE']),0));
+  document.getElementById('dTotal').textContent=fmtEur(totalDeuda);
+  document.getElementById('dTotalSub').textContent=`${noPagadas.length} facturas pendientes`;
+  document.getElementById('dClientes').textContent=sorted.length;
+  document.getElementById('subtitleDeuda').textContent=`${noPagadas.length} facturas · ${sorted.length} clientes · filtro: ${activeFilter==='all'?'todo':activeFilter}`;
+  document.getElementById('deudaList').innerHTML=sorted.length===0?'<div class="empty">No hay facturas pendientes</div>':sorted.map(([nombre,rows],i)=>{
+    const total=rows.reduce((s,r)=>s+parseNum(r['IMPORTE']),0);
+    const id='deuda'+i;
+    const filas=sortByFechaDesc(rows).map(r=>`<tr><td class="mono">${r['Nº FACTURA']||'—'}</td><td class="mono">${getFechaDisplay(r['FECHA'])}</td><td>${r['DESTINO']||'—'}</td><td class="mono">${r['PARES']||'—'}</td><td class="mono" style="font-weight:500;color:var(--red)">${fmtEur(parseNum(r['IMPORTE']))}</td><td style="font-size:11px;color:var(--text-muted)">${r['COMENTARIO']||''}</td></tr>`).join('');
+    return `<div class="deuda-cliente"><div class="deuda-header" onclick="toggleDeuda('${id}')"><div class="avatar" style="background:${AVATAR_COLORS[i%AVATAR_COLORS.length][0]};color:${AVATAR_COLORS[i%AVATAR_COLORS.length][1]}">${getInitials(nombre)}</div><span class="deuda-nombre">${nombre}</span><span style="font-size:12px;color:var(--text-muted);margin-right:8px">${rows.length} factura${rows.length>1?'s':''}</span><span class="deuda-total">${fmtEur(total)}</span><svg style="width:14px;height:14px;margin-left:8px;color:var(--text-muted);transition:transform 0.2s" id="icon${id}" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M4 6l4 4 4-4"/></svg></div><div class="deuda-body" id="${id}"><table class="fact-table" style="margin:4px 0 8px"><thead><tr><th>Nº Factura</th><th>Fecha</th><th>Destino</th><th>Pares</th><th>Importe</th><th>Comentario</th></tr></thead><tbody>${filas}</tbody></table></div></div>`;
+  }).join('');
+}
+
+function toggleDeuda(id) {
+  const body=document.getElementById(id);
+  const icon=document.getElementById('icon'+id);
+  const open=body.classList.toggle('open');
+  if(icon) icon.style.transform=open?'rotate(180deg)':'';
+}
+
+/* ── LEADS ── */
+function renderLeads(leads) {
+  const activos=leads.filter(r=>r['Etapa']&&!['Cerrado ganado','Cerrado perdido'].includes(r['Etapa']));
+  const ganados=leads.filter(r=>r['Etapa']==='Cerrado ganado');
+  document.getElementById('lActivos').textContent=activos.length;
+  document.getElementById('lValor').textContent=fmtEur(activos.reduce((s,r)=>s+parseNum(r['Valor estimado (€)']),0));
+  document.getElementById('lValorSub').textContent=`${activos.length} leads activos`;
+  document.getElementById('lGanados').textContent=ganados.length;
+  document.getElementById('subtitleLeads').textContent=`${leads.length} leads total`;
+  document.getElementById('leadsCount').textContent=leads.length+' registros';
+  document.getElementById('leadsTabla').innerHTML=leads.length===0?'<div class="empty">Sin leads</div>':`<table class="fact-table"><thead><tr><th>Empresa</th><th>Contacto</th><th>País</th><th>Origen</th><th>Etapa</th><th>Valor est.</th><th>Próx. seguimiento</th></tr></thead><tbody>${leads.map(l=>`<tr><td style="font-weight:500">${l['Empresa']||'—'}</td><td>${l['Contacto']||'—'}</td><td>${l['País']||'—'}</td><td>${l['Origen']||'—'}</td><td><span class="badge ${STAGE_BADGE[l['Etapa']]||'badge-gray'}">${l['Etapa']||'—'}</span></td><td class="mono">${l['Valor estimado (€)']?fmtEur(parseNum(l['Valor estimado (€)'])):'—'}</td><td class="mono" style="color:var(--text-muted)">${getFechaDisplay(l['Próximo seguimiento'])}</td></tr>`).join('')}</tbody></table>`;
+}
+
+function renderAll(data) {
+  const fact=filterFact(data.facturacion||[]);
+  renderResumen(fact, data.leads||[], data.clientes||[], data.actividad||[]);
+  renderFacturacion(fact);
+  renderDeuda(fact);
+  renderLeads(data.leads||[]);
+  document.getElementById('lastUpdate').textContent=new Date().toLocaleTimeString('es',{hour:'2-digit',minute:'2-digit'});
+}
+
+async function loadData() {
+  const icon=document.getElementById('refreshIcon');
+  icon.style.animation='spin 1s linear infinite';
+  document.getElementById('errorBox').style.display='none';
+  try {
+    const res=await fetch(SHEET_URL);
+    if(!res.ok) throw new Error('HTTP '+res.status);
+    RAW=await res.json();
+    renderAll(RAW);
+  } catch(e) {
+    const box=document.getElementById('errorBox');
+    box.textContent='No se pudo conectar con Google Sheets. Comprueba que el script está desplegado como "Cualquier usuario".';
+    box.style.display='block';
+  } finally {
+    icon.style.animation='';
+  }
+}
+
+loadData();
+</script>
+</body>
+</html>

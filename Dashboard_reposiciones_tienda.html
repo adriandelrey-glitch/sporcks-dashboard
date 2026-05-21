@@ -1,0 +1,542 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SPORCKS · Dashboard</title>
+<style>
+:root{--bg:#f5f5f4;--surface:#fff;--border:rgba(0,0,0,0.09);--text:#1c1c1c;--muted:#6b7280;--accent:#2563eb;
+  --success-bg:#dcfce7;--success:#166534;--warn-bg:#fef9c3;--warn:#854d0e;
+  --danger-bg:#fee2e2;--danger:#991b1b;--info-bg:#dbeafe;--info:#1e40af;
+  --radius:12px;--radius-sm:8px;}
+@media(prefers-color-scheme:dark){:root{
+  --bg:#111;--surface:#1c1c1e;--border:rgba(255,255,255,0.09);--text:#f5f5f5;--muted:#9ca3af;
+  --success-bg:#14532d;--success:#86efac;--warn-bg:#422006;--warn:#fde68a;
+  --danger-bg:#450a0a;--danger:#fca5a5;--info-bg:#1e3a5f;--info:#93c5fd;}}
+*{box-sizing:border-box;margin:0;padding:0;}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:var(--bg);color:var(--text);font-size:14px;}
+.app{max-width:1400px;margin:0 auto;padding:20px;}
+
+header{display:flex;align-items:center;justify-content:space-between;margin-bottom:20px;flex-wrap:wrap;gap:10px;}
+.header-left h1{font-size:19px;font-weight:600;}
+.header-left p{font-size:12px;color:var(--muted);margin-top:2px;}
+.btn{display:inline-flex;align-items:center;gap:6px;padding:7px 14px;border-radius:var(--radius-sm);border:none;cursor:pointer;font-size:13px;font-weight:500;transition:opacity .15s;}
+.btn:hover{opacity:.85;}.btn:disabled{opacity:.5;cursor:not-allowed;}
+.btn-primary{background:var(--accent);color:#fff;}
+.btn-secondary{background:var(--surface);border:1px solid var(--border);color:var(--text);}
+
+#setup-banner{background:var(--info-bg);color:var(--info);border-radius:var(--radius);padding:14px 18px;margin-bottom:18px;display:none;}
+#setup-banner.show{display:block;}
+.setup-row{display:flex;gap:8px;margin-top:10px;flex-wrap:wrap;}
+.setup-row input{flex:1;min-width:260px;padding:7px 10px;border-radius:var(--radius-sm);border:1px solid var(--border);background:var(--surface);color:var(--text);font-size:13px;}
+.setup-row button{padding:7px 14px;border-radius:var(--radius-sm);background:var(--info);color:#fff;border:none;cursor:pointer;font-size:13px;}
+
+.main-tabs{display:flex;gap:0;border-bottom:1.5px solid var(--border);margin-bottom:20px;}
+.main-tab{background:none;border:none;border-bottom:2.5px solid transparent;padding:10px 20px;font-size:14px;font-weight:500;color:var(--muted);cursor:pointer;margin-bottom:-1.5px;}
+.main-tab.active{color:var(--text);border-bottom-color:var(--accent);}
+.tab-panel{display:none;}.tab-panel.active{display:block;}
+.panel{background:var(--surface);border-radius:var(--radius);border:1px solid var(--border);padding:16px 18px;margin-bottom:14px;}
+.panel-title{font-size:12px;font-weight:500;color:var(--muted);margin-bottom:14px;text-transform:uppercase;letter-spacing:.04em;}
+
+.metrics{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:10px;margin-bottom:14px;}
+.metric{background:var(--surface);border-radius:var(--radius);border:1px solid var(--border);padding:14px 16px;}
+.metric-label{font-size:12px;color:var(--muted);margin-bottom:5px;}
+.metric-value{font-size:26px;font-weight:600;}
+.metric-sub{font-size:12px;color:var(--muted);margin-top:3px;}
+.metric.danger .metric-value{color:#dc2626;}
+.metric.warn .metric-value{color:#d97706;}
+
+.sub-tabs{display:flex;gap:8px;margin-bottom:14px;}
+.sub-tab{padding:5px 14px;border-radius:99px;border:1.5px solid var(--border);background:none;font-size:13px;color:var(--muted);cursor:pointer;}
+.sub-tab.active{background:var(--accent);color:#fff;border-color:var(--accent);}
+
+.top-table{width:100%;border-collapse:collapse;font-size:13px;}
+.top-table th{font-size:11px;font-weight:500;color:var(--muted);text-align:left;padding:0 8px 8px;text-transform:uppercase;letter-spacing:.04em;border-bottom:1px solid var(--border);}
+.top-table td{padding:8px;border-bottom:.5px solid var(--border);vertical-align:middle;}
+.top-table tr:last-child td{border-bottom:none;}
+.top-table tr:hover td{background:var(--bg);}
+.bar-wrap{width:80px;height:5px;background:var(--bg);border-radius:3px;overflow:hidden;display:inline-block;vertical-align:middle;}
+.bar-fill{height:100%;background:var(--accent);border-radius:3px;}
+
+.org-tabs{display:flex;gap:0;border-bottom:1px solid var(--border);margin-bottom:20px;flex-wrap:wrap;}
+.org-tab{background:none;border:none;border-bottom:2px solid transparent;padding:7px 14px;font-size:13px;color:var(--muted);cursor:pointer;margin-bottom:-1px;white-space:nowrap;}
+.org-tab.active{color:var(--text);border-bottom-color:var(--accent);}
+.org-panel{display:none;}.org-panel.active{display:block;}
+
+.section-label{font-size:11px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;margin:18px 0 12px;padding-bottom:6px;border-bottom:1px solid var(--border);}
+.section-label:first-child{margin-top:0;}
+.models-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(155px,1fr));gap:12px;margin-bottom:8px;}
+
+/* MODEL CARDS */
+.model-card{background:var(--surface);border:1.5px solid var(--border);border-radius:var(--radius);overflow:visible;user-select:none;transition:box-shadow .15s,border-color .15s;position:relative;}
+.model-card.in-tienda{border-color:rgba(37,99,235,0.35);}
+.model-card.has-alert{border-color:rgba(220,38,38,0.4);}
+.model-card.dragging{opacity:.35;box-shadow:0 6px 20px rgba(0,0,0,0.15);}
+.card-drag-handle{width:100%;cursor:grab;display:block;}
+.card-drag-handle:active{cursor:grabbing;}
+.card-img{width:100%;height:130px;object-fit:contain;background:var(--bg);padding:10px;display:block;border-radius:var(--radius) var(--radius) 0 0;}
+.card-img-placeholder{width:100%;height:130px;background:var(--bg);display:flex;align-items:center;justify-content:center;font-size:36px;border-radius:var(--radius) var(--radius) 0 0;}
+.card-body{padding:10px 10px 6px;}
+.card-name{font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.02em;margin-bottom:8px;line-height:1.3;}
+.card-sizes{width:100%;border-collapse:collapse;}
+.card-sizes td{font-size:11px;padding:2px 0;line-height:1.4;}
+.td-size{color:var(--muted);width:38px;}
+.td-stock{font-weight:500;text-align:right;}
+.td-stock.s-sin{color:#dc2626;font-weight:700;}
+.td-stock.s-crit{color:#dc2626;}
+.td-stock.s-bajo{color:#d97706;}
+.td-stock.s-ok{color:var(--text);}
+.card-footer{padding:6px 8px 8px;display:flex;align-items:center;justify-content:space-between;border-top:1px solid var(--border);margin-top:6px;}
+.card-loc{font-size:10px;color:var(--muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:100px;}
+.card-menu-btn{background:none;border:none;cursor:pointer;color:var(--muted);font-size:18px;line-height:1;padding:0 2px;flex-shrink:0;}
+.card-menu-btn:hover{color:var(--text);}
+
+/* DROPDOWN — positioned relative to card */
+.card-dropdown{position:absolute;bottom:36px;right:8px;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-sm);box-shadow:0 4px 20px rgba(0,0,0,0.15);z-index:500;min-width:160px;display:none;overflow:hidden;}
+.card-dropdown.open{display:block;}
+.card-dropdown button{display:block;width:100%;text-align:left;padding:8px 14px;background:none;border:none;font-size:13px;color:var(--text);cursor:pointer;white-space:nowrap;}
+.card-dropdown button:hover{background:var(--bg);}
+.card-dropdown button.dd-active{color:var(--accent);font-weight:500;}
+.dd-sep{height:1px;background:var(--border);margin:3px 0;}
+
+.drop-zone{min-height:60px;border:2px dashed var(--border);border-radius:var(--radius);padding:10px;transition:border-color .15s,background .15s;margin-bottom:12px;}
+.drop-zone.drag-over{border-color:var(--accent);background:var(--info-bg);}
+.drop-hint{font-size:12px;color:var(--muted);text-align:center;padding:12px 0;}
+
+.repo-table{width:100%;border-collapse:collapse;font-size:13px;}
+.repo-table th{font-size:11px;font-weight:500;color:var(--muted);text-align:left;padding:0 8px 8px;text-transform:uppercase;letter-spacing:.04em;border-bottom:1px solid var(--border);}
+.repo-table td{padding:8px;border-bottom:.5px solid var(--border);vertical-align:middle;}
+.repo-table tr:last-child td{border-bottom:none;}
+.qty-input{width:60px;padding:4px 6px;border:1px solid var(--border);border-radius:4px;font-size:13px;background:var(--surface);color:var(--text);text-align:center;}
+
+.empty{color:var(--muted);font-size:13px;padding:30px 0;text-align:center;}
+.loading{color:var(--muted);font-size:13px;padding:30px 0;text-align:center;animation:pulse 1.2s infinite;}
+@keyframes pulse{0%,100%{opacity:.5}50%{opacity:1}}
+</style>
+</head>
+<body>
+<div class="app">
+<header>
+  <div class="header-left">
+    <h1>SPORCKS · Dashboard</h1>
+    <p id="last-sync">Ultima sync: —</p>
+  </div>
+  <button class="btn btn-secondary" id="refresh-btn" onclick="loadAll()">↻ Actualizar</button>
+</header>
+
+<div id="setup-banner">
+  <strong>Configura la URL de tu Apps Script Web App</strong>
+  <div class="setup-row">
+    <input id="script-url-input" type="url" placeholder="https://script.google.com/macros/s/XXXX/exec"/>
+    <button onclick="saveScriptUrl()">Guardar</button>
+  </div>
+</div>
+
+<div class="main-tabs">
+  <button class="main-tab active" onclick="switchTab('resumen',this)">Resumen</button>
+  <button class="main-tab" onclick="switchTab('organizacion',this)">Organizacion</button>
+  <button class="main-tab" onclick="switchTab('reposicion',this)">Reposicion BigBlue</button>
+</div>
+
+<!-- RESUMEN -->
+<div id="tab-resumen" class="tab-panel active">
+  <div class="metrics" id="metrics"><div class="loading">Cargando…</div></div>
+  <div class="panel">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;flex-wrap:wrap;gap:8px;">
+      <div class="panel-title" style="margin:0">Top 20 SKU</div>
+      <div class="sub-tabs">
+        <button class="sub-tab active" onclick="switchTop('historico',this)">Historico</button>
+        <button class="sub-tab" onclick="switchTop('mes',this)">Ultimos 30 dias</button>
+      </div>
+    </div>
+    <div style="overflow-x:auto"><div id="top-list"><div class="loading">Cargando…</div></div></div>
+  </div>
+</div>
+
+<!-- ORGANIZACION -->
+<div id="tab-organizacion" class="tab-panel">
+  <div class="org-tabs">
+    <button class="org-tab active" onclick="switchOrg('modelos',this)">Modelos</button>
+    <button class="org-tab" onclick="switchOrg('Pared 1',this)">Pared 1</button>
+    <button class="org-tab" onclick="switchOrg('Pared 2',this)">Pared 2</button>
+    <button class="org-tab" onclick="switchOrg('Pared 3',this)">Pared 3</button>
+    <button class="org-tab" onclick="switchOrg('Pared 4',this)">Pared 4</button>
+    <button class="org-tab" onclick="switchOrg('Mostrador 1',this)">Mostrador 1</button>
+    <button class="org-tab" onclick="switchOrg('Mostrador 2',this)">Mostrador 2</button>
+    <button class="org-tab" onclick="switchOrg('Almacen',this)">Almacen</button>
+  </div>
+  <div id="org-modelos" class="org-panel active">
+    <p style="font-size:13px;color:var(--muted);margin-bottom:16px;">Arrastra modelos a su ubicacion o usa ⋯ para reasignar. Al asignar ubicacion, el modelo se marca automaticamente como <em>en tienda</em>.</p>
+    <div id="modelos-content"><div class="loading">Cargando…</div></div>
+  </div>
+  <div id="org-Pared 1"     class="org-panel"><div class="drop-zone" id="dz-Pared 1"     ondragover="onDragOver(event)" ondrop="onDrop(event,'Pared 1')"><div class="drop-hint">Arrastra modelos aqui</div></div><div class="models-grid" id="grid-Pared 1"></div></div>
+  <div id="org-Pared 2"     class="org-panel"><div class="drop-zone" id="dz-Pared 2"     ondragover="onDragOver(event)" ondrop="onDrop(event,'Pared 2')"><div class="drop-hint">Arrastra modelos aqui</div></div><div class="models-grid" id="grid-Pared 2"></div></div>
+  <div id="org-Pared 3"     class="org-panel"><div class="drop-zone" id="dz-Pared 3"     ondragover="onDragOver(event)" ondrop="onDrop(event,'Pared 3')"><div class="drop-hint">Arrastra modelos aqui</div></div><div class="models-grid" id="grid-Pared 3"></div></div>
+  <div id="org-Pared 4"     class="org-panel"><div class="drop-zone" id="dz-Pared 4"     ondragover="onDragOver(event)" ondrop="onDrop(event,'Pared 4')"><div class="drop-hint">Arrastra modelos aqui</div></div><div class="models-grid" id="grid-Pared 4"></div></div>
+  <div id="org-Mostrador 1" class="org-panel"><div class="drop-zone" id="dz-Mostrador 1" ondragover="onDragOver(event)" ondrop="onDrop(event,'Mostrador 1')"><div class="drop-hint">Arrastra modelos aqui</div></div><div class="models-grid" id="grid-Mostrador 1"></div></div>
+  <div id="org-Mostrador 2" class="org-panel"><div class="drop-zone" id="dz-Mostrador 2" ondragover="onDragOver(event)" ondrop="onDrop(event,'Mostrador 2')"><div class="drop-hint">Arrastra modelos aqui</div></div><div class="models-grid" id="grid-Mostrador 2"></div></div>
+  <div id="org-Almacen"     class="org-panel"><div class="drop-zone" id="dz-Almacen"     ondragover="onDragOver(event)" ondrop="onDrop(event,'Almacen')"><div class="drop-hint">Arrastra modelos aqui</div></div><div class="models-grid" id="grid-Almacen"></div></div>
+</div>
+
+<!-- REPOSICION -->
+<div id="tab-reposicion" class="tab-panel">
+  <div class="panel">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;flex-wrap:wrap;gap:10px;">
+      <div>
+        <div class="panel-title" style="margin-bottom:4px;">Reposicion BigBlue</div>
+        <p style="font-size:12px;color:var(--muted)">Solo SKUs en tienda con cantidad a pedir > 0.</p>
+      </div>
+      <div style="display:flex;gap:8px;">
+        <button class="btn btn-secondary" onclick="renderReposicion()">↻ Recalcular</button>
+        <button class="btn btn-primary" onclick="downloadCSV()">↓ Descargar CSV</button>
+      </div>
+    </div>
+    <div style="overflow-x:auto">
+      <table class="repo-table">
+        <thead><tr><th>Producto</th><th>Talla</th><th>SKU</th><th>Ubicacion</th><th style="text-align:center">Stock</th><th style="text-align:center">Minimo</th><th style="text-align:center">A pedir</th></tr></thead>
+        <tbody id="repo-body"><tr><td colspan="7" class="loading">Cargando…</td></tr></tbody>
+      </table>
+    </div>
+  </div>
+</div>
+</div>
+
+<script>
+const LS_KEY  = 'sporcks_script_url';
+const LS_ENT  = 'sporcks_ent_v3';
+let SCRIPT_URL  = localStorage.getItem(LS_KEY) || '';
+let stockMap    = {};
+let skuConfig   = [];
+let topData     = { historico:[], mes:[] };
+let activeTop   = 'historico';
+let enTiendaLocal = JSON.parse(localStorage.getItem(LS_ENT) || '{}');
+let draggedModel  = null;
+let openDDId      = null;
+
+const UBICACIONES  = ['Pared 1','Pared 2','Pared 3','Pared 4','Mostrador 1','Mostrador 2','Almacen'];
+const TALLAS_ORDER = ['XS','S','M','L','XL','XXL'];
+
+// ── Setup ─────────────────────────────────────────────────
+function saveScriptUrl() {
+  const v = document.getElementById('script-url-input').value.trim();
+  if (!v) return;
+  localStorage.setItem(LS_KEY, v); SCRIPT_URL = v;
+  document.getElementById('setup-banner').classList.remove('show');
+  loadAll();
+}
+function checkSetup() {
+  if (!SCRIPT_URL) { document.getElementById('setup-banner').classList.add('show'); return false; }
+  return true;
+}
+
+// ── API ───────────────────────────────────────────────────
+async function apiFetch(action) {
+  const r = await fetch(SCRIPT_URL + '?action=' + action);
+  if (!r.ok) throw new Error('HTTP ' + r.status);
+  return r.json();
+}
+async function apiPost(body) {
+  try { await fetch(SCRIPT_URL, { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(body) }); }
+  catch(e) { console.warn('POST error:', e); }
+}
+
+// ── Load ──────────────────────────────────────────────────
+async function loadAll() {
+  if (!checkSetup()) return;
+  const btn = document.getElementById('refresh-btn');
+  btn.disabled = true; btn.textContent = '↻ Cargando…';
+  try {
+    const [summary, top, stock, cfg] = await Promise.all([
+      apiFetch('summary'), apiFetch('top'), apiFetch('stock'), apiFetch('skuconfig')
+    ]);
+    stockMap  = stock  || {};
+    skuConfig = cfg    || [];
+    topData   = top    || { historico:[], mes:[] };
+    renderMetrics(summary);
+    renderTop();
+    renderOrganizacion();
+    renderReposicion();
+    document.getElementById('last-sync').textContent = 'Ultima sync: ' + (summary.ultima_sync || '—');
+  } catch(e) {
+    document.getElementById('metrics').innerHTML = '<div class="empty">Error: ' + e.message + '</div>';
+  }
+  btn.disabled = false; btn.textContent = '↻ Actualizar';
+}
+
+// ── Tabs ──────────────────────────────────────────────────
+function switchTab(id, btn) {
+  document.querySelectorAll('.main-tab').forEach(t => t.classList.remove('active'));
+  document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
+  btn.classList.add('active');
+  document.getElementById('tab-' + id).classList.add('active');
+}
+function switchOrg(id, btn) {
+  document.querySelectorAll('.org-tab').forEach(t => t.classList.remove('active'));
+  document.querySelectorAll('.org-panel').forEach(p => p.classList.remove('active'));
+  btn.classList.add('active');
+  document.getElementById('org-' + id).classList.add('active');
+}
+function switchTop(tab, btn) {
+  activeTop = tab;
+  document.querySelectorAll('.sub-tab').forEach(t => t.classList.remove('active'));
+  btn.classList.add('active');
+  renderTop();
+}
+
+// ── Metrics ───────────────────────────────────────────────
+function renderMetrics(s) {
+  document.getElementById('metrics').innerHTML = `
+    <div class="metric ${(s.stock_sin_stock+s.stock_critico)>0?'danger':''}">
+      <div class="metric-label">Sin stock / Critico</div>
+      <div class="metric-value">${s.stock_sin_stock+s.stock_critico}</div>
+      <div class="metric-sub">${s.stock_sin_stock} sin stock · ${s.stock_critico} criticos</div>
+    </div>
+    <div class="metric ${s.stock_bajo>0?'warn':''}">
+      <div class="metric-label">Stock bajo</div>
+      <div class="metric-value">${s.stock_bajo}</div>
+      <div class="metric-sub">Por debajo del minimo x1.5</div>
+    </div>
+    <div class="metric">
+      <div class="metric-label">Total alertas</div>
+      <div class="metric-value">${s.stock_sin_stock+s.stock_critico+s.stock_bajo}</div>
+      <div class="metric-sub">SKUs en tienda</div>
+    </div>`;
+}
+
+// ── Top 20 ────────────────────────────────────────────────
+function renderTop() {
+  const el   = document.getElementById('top-list');
+  const data = activeTop === 'historico' ? topData.historico : topData.mes;
+  if (!data || !data.length) { el.innerHTML='<div class="empty">Sin datos.</div>'; return; }
+  const max = data[0].unidades;
+  el.innerHTML = '<table class="top-table"><thead><tr><th>#</th><th>Modelo</th><th>SKU</th><th>Unidades</th></tr></thead><tbody>' +
+    data.map((p,i) => `<tr>
+      <td style="color:var(--muted);width:28px">${i+1}</td>
+      <td style="font-weight:500">${p.modelo}</td>
+      <td style="font-family:monospace;font-size:12px;color:var(--muted)">${p.sku}</td>
+      <td><div style="display:flex;align-items:center;gap:10px">
+        <div class="bar-wrap"><div class="bar-fill" style="width:${Math.round(p.unidades/max*100)}%"></div></div>
+        <span style="font-weight:500">${p.unidades}</span>
+      </div></td>
+    </tr>`).join('') + '</tbody></table>';
+}
+
+// ── Model helpers ─────────────────────────────────────────
+function buildModels() {
+  const map = {};
+  skuConfig.forEach(s => {
+    const key = s.product_name || s.sku;
+    if (!map[key]) map[key] = { nombre:key, imagen:'', skus:[] };
+    if (s.imagen && !map[key].imagen) map[key].imagen = s.imagen;
+    map[key].skus.push(s);
+  });
+  return Object.values(map).sort((a, b) => {
+    const aE = isEnTienda(a.nombre), bE = isEnTienda(b.nombre);
+    if (aE !== bE) return aE ? -1 : 1;
+    return a.nombre.localeCompare(b.nombre, 'es');
+  });
+}
+
+function isEnTienda(nombre) {
+  if (enTiendaLocal[nombre] !== undefined) return enTiendaLocal[nombre];
+  return skuConfig.filter(s => s.product_name === nombre).some(s => s.en_tienda);
+}
+// Ubicacion fisica — lee de skuConfig (Sheets), agrupa por modelo
+function getUbic(nombre) {
+  const sku = skuConfig.find(s => s.product_name === nombre);
+  return sku ? (sku.ubicacion_fisica || null) : null;
+}
+
+function stockClass(stock, min) {
+  if (stock <= 0)          return 's-sin';
+  if (stock <= min)        return 's-crit';
+  if (stock <= min * 1.5)  return 's-bajo';
+  return 's-ok';
+}
+
+// ── Card builder ──────────────────────────────────────────
+let cardCounter = 0;
+function makeCard(model) {
+  const ubic    = getUbic(model.nombre);
+  const enT     = isEnTienda(model.nombre);
+  const ddId    = 'dd' + (++cardCounter);
+  const safeKey = encodeURIComponent(model.nombre);
+
+  // Sort skus by talla
+  const sorted = [...model.skus].sort((a,b) =>
+    TALLAS_ORDER.indexOf(a.size.toUpperCase()) - TALLAS_ORDER.indexOf(b.size.toUpperCase())
+  );
+
+  let hasAlert = false;
+  const sizesHtml = sorted.map(s => {
+    const stock = stockMap[s.sku] !== undefined ? stockMap[s.sku] : '—';
+    const cls   = typeof stock === 'number' ? stockClass(stock, s.stock_minimo) : 's-ok';
+    if (cls !== 's-ok') hasAlert = true;
+    return `<tr><td class="td-size">${s.size||'—'}</td><td class="td-stock ${cls}">${stock}</td></tr>`;
+  }).join('');
+
+  const imgHtml = model.imagen
+    ? `<img class="card-img" src="${model.imagen}" onerror="this.style.display='none';this.nextSibling.style.display='flex'" alt=""><div class="card-img-placeholder" style="display:none">🧦</div>`
+    : `<div class="card-img-placeholder">🧦</div>`;
+
+  const menuItems = UBICACIONES.map(u =>
+    `<button class="${ubic===u?'dd-active':''}" onclick="assignModel('${safeKey}','${u}')">${ubic===u?'✓ ':''} ${u}</button>`
+  ).join('') +
+  '<div class="dd-sep"></div>' +
+  `<button onclick="assignModel('${safeKey}','')" style="color:var(--muted)">Quitar ubicacion</button>`;
+
+  return `<div class="model-card ${enT?'in-tienda':''} ${hasAlert?'has-alert':''}" data-nombre="${safeKey}">
+    <div class="card-drag-handle"
+      draggable="true"
+      ondragstart="onDragStart(event,'${safeKey}')"
+      ondragend="onDragEnd(event)">
+      ${imgHtml}
+    </div>
+    <div class="card-body">
+      <div class="card-name">${model.nombre}</div>
+      <table class="card-sizes">${sizesHtml}</table>
+    </div>
+    <div class="card-footer">
+      <span class="card-loc">${ubic?'📍 '+ubic:''}</span>
+      <button class="card-menu-btn" onclick="toggleDD(event,'${ddId}')">⋯</button>
+    </div>
+    <div class="card-dropdown" id="${ddId}">${menuItems}</div>
+  </div>`;
+}
+
+// ── Render org ────────────────────────────────────────────
+function renderOrganizacion() {
+  cardCounter = 0;
+  const models = buildModels();
+  const enT    = models.filter(m => isEnTienda(m.nombre));
+  const noEnT  = models.filter(m => !isEnTienda(m.nombre));
+  let html = '';
+  if (enT.length)   html += `<div class="section-label">En tienda (${enT.length})</div><div class="models-grid">${enT.map(makeCard).join('')}</div>`;
+  if (noEnT.length) html += `<div class="section-label">Sin configurar (${noEnT.length})</div><div class="models-grid">${noEnT.map(makeCard).join('')}</div>`;
+  document.getElementById('modelos-content').innerHTML = html || '<div class="empty">Sin datos. Rellena Configuracion_SKU.</div>';
+
+  UBICACIONES.forEach(u => {
+    const el = document.getElementById('grid-' + u);
+    if (!el) return;
+    const items = models.filter(m => getUbic(m.nombre) === u);
+    el.innerHTML = items.map(makeCard).join('') || '';
+  });
+}
+
+// ── Assign & state ────────────────────────────────────────
+function setEnTienda(nombre, val) {
+  enTiendaLocal[nombre] = val;
+  localStorage.setItem(LS_ENT, JSON.stringify(enTiendaLocal));
+  skuConfig.filter(s => s.product_name === nombre).forEach(s => {
+    apiPost({ action:'setEnTienda', sku:s.sku, en_tienda:val });
+  });
+}
+function setUbic(nombre, ubic) {
+  // Actualizar cache local para respuesta inmediata
+  skuConfig.filter(s => s.product_name === nombre).forEach(s => {
+    s.ubicacion_fisica = ubic || '';
+  });
+  // Persistir en Sheets via POST para cada SKU del modelo
+  skuConfig.filter(s => s.product_name === nombre).forEach(s => {
+    apiPost({ action: 'setUbicacion', sku: s.sku, ubicacion: ubic || '' });
+  });
+  // Si asigna ubicacion -> marcar en_tienda true; si quita -> false
+  setEnTienda(nombre, !!ubic);
+}
+function assignModel(safeKey, ubic) {
+  const nombre = decodeURIComponent(safeKey);
+  setUbic(nombre, ubic || null);
+  closeAllDD();
+  renderOrganizacion();
+}
+
+// ── Drag & drop ───────────────────────────────────────────
+function onDragStart(e, safeKey) {
+  draggedModel = decodeURIComponent(safeKey);
+  e.dataTransfer.effectAllowed = 'move';
+  e.dataTransfer.setData('text/plain', draggedModel);
+  // Mark card as dragging
+  const card = e.currentTarget.closest('.model-card');
+  if (card) setTimeout(() => card.classList.add('dragging'), 0);
+}
+function onDragEnd(e) {
+  const card = e.currentTarget.closest('.model-card');
+  if (card) card.classList.remove('dragging');
+  document.querySelectorAll('.drop-zone').forEach(z => z.classList.remove('drag-over'));
+  draggedModel = null;
+}
+function onDragOver(e) {
+  e.preventDefault();
+  e.dataTransfer.dropEffect = 'move';
+  e.currentTarget.classList.add('drag-over');
+}
+function onDrop(e, ubic) {
+  e.preventDefault();
+  e.currentTarget.classList.remove('drag-over');
+  const nombre = draggedModel || e.dataTransfer.getData('text/plain');
+  if (!nombre) return;
+  setUbic(nombre, ubic);
+  draggedModel = null;
+  renderOrganizacion();
+}
+
+// ── Dropdown ──────────────────────────────────────────────
+function toggleDD(e, id) {
+  e.stopPropagation();
+  e.preventDefault();
+  const el   = document.getElementById(id);
+  const open = el.classList.contains('open');
+  closeAllDD();
+  if (!open) { el.classList.add('open'); openDDId = id; }
+}
+function closeAllDD() {
+  document.querySelectorAll('.card-dropdown.open').forEach(d => d.classList.remove('open'));
+  openDDId = null;
+}
+document.addEventListener('click', closeAllDD);
+document.addEventListener('keydown', e => { if (e.key==='Escape') closeAllDD(); });
+
+// ── Reposicion ────────────────────────────────────────────
+function renderReposicion() {
+  const body  = document.getElementById('repo-body');
+  const items = skuConfig
+    .filter(s => s.en_tienda)
+    .map(s => {
+      const stock  = stockMap[s.sku] || 0;
+      const aPedir = Math.max(0, s.stock_minimo - stock);
+      return { ...s, stock, aPedir };
+    })
+    .filter(s => s.aPedir > 0); // solo los que hay que pedir
+
+  if (!items.length) {
+    body.innerHTML = '<tr><td colspan="7" class="empty">Todo el stock esta al dia. No hay nada que pedir.</td></tr>';
+    return;
+  }
+  body.innerHTML = items.map(s => `<tr>
+    <td>${s.product_name}</td>
+    <td style="text-align:center">${s.size||'—'}</td>
+    <td style="font-family:monospace;font-size:12px;color:var(--muted)">${s.sku}</td>
+    <td>${s.ubicacion||'—'}</td>
+    <td style="text-align:center">${s.stock}</td>
+    <td style="text-align:center">${s.stock_minimo}</td>
+    <td style="text-align:center"><input class="qty-input" type="number" min="0" value="${s.aPedir}" data-sku="${s.sku}"/></td>
+  </tr>`).join('');
+}
+
+function downloadCSV() {
+  const rows = [['ProductSKU','Quantity','UnitPrice','UnitTax','TotalDiscount']];
+  document.querySelectorAll('#repo-body .qty-input').forEach(inp => {
+    const qty = parseInt(inp.value||'0');
+    if (qty > 0) rows.push([inp.dataset.sku, qty, '', '', '']);
+  });
+  if (rows.length <= 1) { alert('No hay productos con cantidad > 0.'); return; }
+  const blob = new Blob([rows.map(r=>r.join(',')).join('\n')], {type:'text/csv'});
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob); a.download = 'reposicion_bigblue_' + new Date().toISOString().substring(0,10) + '.csv';
+  a.click();
+}
+
+loadAll();
+</script>
+</body>
+</html>
