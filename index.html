@@ -3,52 +3,49 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Sporcks — Dashboards</title>
-<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+<title>SPORCKS · Dashboards</title>
 <style>
-*{box-sizing:border-box;margin:0;padding:0}
-body{font-family:'DM Sans',sans-serif;background:#f5f4f0;color:#1a1a18;min-height:100vh;display:flex;flex-direction:column}
-
-header{background:#fff;border-bottom:1px solid rgba(0,0,0,0.08);padding:0 2.5rem;height:56px;display:flex;align-items:center;justify-content:space-between;box-shadow:0 1px 4px rgba(0,0,0,.04)}
-.brand{display:flex;align-items:center;gap:10px;font-size:16px;font-weight:600;letter-spacing:-.3px}
-.brand-dot{width:9px;height:9px;background:#639922;border-radius:50%}
-.brand-sub{font-size:12px;color:#a0a09b;font-weight:400;margin-left:4px}
-
-main{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:3rem 1.5rem}
-
-.hero{text-align:center;margin-bottom:3rem}
-.hero h1{font-size:32px;font-weight:600;letter-spacing:-.5px;margin-bottom:10px}
-.hero p{font-size:15px;color:#6b6b67;max-width:420px;margin:0 auto;line-height:1.6}
-
-.cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:1.25rem;width:100%;max-width:900px}
-
-.card{background:#fff;border:1px solid rgba(0,0,0,0.08);border-radius:16px;padding:1.75rem;text-decoration:none;color:inherit;transition:all .2s;box-shadow:4px 4px 14px rgba(0,0,0,0.04);display:flex;flex-direction:column;gap:1rem}
-.card:hover{transform:translateY(-3px);box-shadow:6px 8px 24px rgba(0,0,0,0.09);border-color:rgba(0,0,0,0.14)}
-
-.card-icon{width:48px;height:48px;border-radius:12px;display:flex;align-items:center;justify-content:center;font-size:22px;flex-shrink:0}
-.card-icon.green{background:#EAF3DE}
-.card-icon.purple{background:#EEEDFE}
-.card-icon.blue{background:#E6F1FB}
-
-.card-body{}
-.card-title{font-size:16px;font-weight:600;margin-bottom:5px;letter-spacing:-.2px}
-.card-desc{font-size:13px;color:#6b6b67;line-height:1.55}
-
-.card-footer{display:flex;align-items:center;justify-content:space-between;margin-top:auto;padding-top:.75rem;border-top:1px solid rgba(0,0,0,0.06)}
-.card-tag{font-size:11px;font-weight:500;padding:3px 9px;border-radius:20px}
-.tag-green{background:#EAF3DE;color:#3B6D11}
-.tag-purple{background:#EEEDFE;color:#534AB7}
-.tag-blue{background:#E6F1FB;color:#185FA5}
-.card-arrow{font-size:18px;color:#a0a09b;transition:transform .2s}
-.card:hover .card-arrow{transform:translateX(3px);color:#1a1a18}
-
-footer{text-align:center;padding:1.5rem;font-size:12px;color:#a0a09b}
-
-@media(max-width:600px){
-  header{padding:0 1.25rem}
-  main{padding:2rem 1rem}
-  .hero h1{font-size:24px}
+:root{
+  --bg:#f5f4f0;--surface:#fff;--border:rgba(0,0,0,0.08);
+  --text:#1a1917;--muted:#7a7873;--accent:#1a56e8;
+  --green:#1e7c4a;--green-bg:#e6f5ed;
+  --radius:14px;
 }
+*{box-sizing:border-box;margin:0;padding:0;}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;}
+
+header{background:var(--surface);border-bottom:1px solid var(--border);padding:0 2rem;height:56px;display:flex;align-items:center;justify-content:space-between;}
+.brand{display:flex;align-items:center;gap:10px;}
+.brand-dot{width:9px;height:9px;background:#639922;border-radius:50%;}
+.brand-name{font-size:15px;font-weight:600;letter-spacing:-.3px;}
+.brand-sub{font-size:12px;color:var(--muted);margin-left:4px;font-weight:400;}
+.header-date{font-size:12px;color:var(--muted);}
+
+main{max-width:900px;margin:0 auto;padding:3rem 1.5rem;}
+
+.hero{margin-bottom:2.5rem;}
+.hero h1{font-size:26px;font-weight:600;letter-spacing:-.4px;margin-bottom:6px;}
+.hero p{font-size:14px;color:var(--muted);line-height:1.6;}
+
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:14px;}
+
+.card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:1.5rem;text-decoration:none;color:inherit;transition:box-shadow .2s,transform .2s;display:flex;flex-direction:column;gap:12px;}
+.card:hover{box-shadow:0 4px 20px rgba(0,0,0,0.08);transform:translateY(-2px);}
+
+.card-icon{width:40px;height:40px;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:20px;flex-shrink:0;}
+.icon-stock{background:#dbeafe;}
+.icon-b2b{background:#fef3e2;}
+.icon-repo{background:#e6f5ed;}
+
+.card-title{font-size:15px;font-weight:600;letter-spacing:-.2px;}
+.card-desc{font-size:13px;color:var(--muted);line-height:1.5;flex:1;}
+.card-link{font-size:12px;color:var(--accent);font-weight:500;display:flex;align-items:center;gap:4px;margin-top:4px;}
+.card-link::after{content:'→';}
+
+.card-badge{display:inline-flex;align-items:center;gap:5px;font-size:11px;background:var(--green-bg);color:var(--green);padding:3px 8px;border-radius:99px;font-weight:500;width:fit-content;}
+.badge-dot{width:6px;height:6px;background:var(--green);border-radius:50%;}
+
+footer{text-align:center;padding:2rem;font-size:12px;color:var(--muted);}
 </style>
 </head>
 <body>
@@ -56,64 +53,78 @@ footer{text-align:center;padding:1.5rem;font-size:12px;color:#a0a09b}
 <header>
   <div class="brand">
     <div class="brand-dot"></div>
-    Sporcks
-    <span class="brand-sub">Intelligence</span>
+    <span class="brand-name">SPORCKS <span class="brand-sub">Dashboards</span></span>
   </div>
-  <div style="font-size:12px;color:#a0a09b" id="fecha"></div>
+  <span class="header-date" id="header-date"></span>
 </header>
 
 <main>
   <div class="hero">
     <h1>Panel de control</h1>
-    <p>Accede a los dashboards de análisis de ventas, embajadores y gestión de stock.</p>
+    <p>Accede a los dashboards operativos de SPORCKS. Todos conectados a Google Sheets y actualizados en tiempo real.</p>
   </div>
 
-  <div class="cards">
+  <div class="grid">
 
-    <a class="card" href="expos.html">
-      <div class="card-icon green">🏁</div>
-      <div class="card-body">
-        <div class="card-title">Expos & Eventos</div>
-        <div class="card-desc">Resultados de ventas por expo, rendimiento de modelos, análisis de tallas y recomendación de stock para próximas carreras.</div>
+    <a class="card" href="dashboard_reposiciones_tienda.html">
+      <div class="card-icon icon-stock">📦</div>
+      <div>
+        <div class="card-title">Reposiciones tienda</div>
+        <div class="card-badge"><span class="badge-dot"></span>En vivo</div>
       </div>
-      <div class="card-footer">
-        <span class="card-tag tag-green">Google Sheets · Live</span>
-        <span class="card-arrow">→</span>
-      </div>
+      <div class="card-desc">Control de stock por ubicacion, alertas de reposicion y organizacion por pared y mostrador.</div>
+      <div class="card-link">Abrir dashboard</div>
     </a>
 
-    <a class="card" href="embajadores.html">
-      <div class="card-icon purple">⭐</div>
-      <div class="card-body">
+    <a class="card" href="dashboard_b2b.html">
+      <div class="card-icon icon-b2b">🤝</div>
+      <div>
+        <div class="card-title">B2B</div>
+        <div class="card-badge"><span class="badge-dot"></span>En vivo</div>
+      </div>
+      <div class="card-desc">Seguimiento de clientes B2B, facturacion, pipeline de leads y rendimiento global por cuenta.</div>
+      <div class="card-link">Abrir dashboard</div>
+    </a>
+
+    <a class="card" href="dashboard_reposicion.html">
+      <div class="card-icon icon-repo">🔄</div>
+      <div>
+        <div class="card-title">Stock & Reposiciones</div>
+        <div class="card-badge"><span class="badge-dot"></span>En vivo</div>
+      </div>
+      <div class="card-desc">Control de ordenes de compra y reposicion de producto desde proveedores. Priorizacion por dias de stock.</div>
+      <div class="card-link">Abrir dashboard</div>
+    </a>
+
+    <a class="card" href="dashboard_embajadores.html">
+      <div class="card-icon" style="background:#f3e8ff;">🏃</div>
+      <div>
         <div class="card-title">Embajadores</div>
-        <div class="card-desc">Gestión y seguimiento de embajadores de marca, métricas de rendimiento y estado de cada colaboración.</div>
+        <div class="card-badge"><span class="badge-dot"></span>En vivo</div>
       </div>
-      <div class="card-footer">
-        <span class="card-tag tag-purple">Google Sheets · Live</span>
-        <span class="card-arrow">→</span>
-      </div>
+      <div class="card-desc">Control de ventas y rendimiento por embajador, comisiones y seguimiento de actividad.</div>
+      <div class="card-link">Abrir dashboard</div>
     </a>
 
-    <a class="card" href="reposiciones.html">
-      <div class="card-icon blue">📦</div>
-      <div class="card-body">
-        <div class="card-title">Stock & Reposición</div>
-        <div class="card-desc">Control de inventario, alertas de reposición, análisis de rotación y gestión de pedidos por producto y talla.</div>
+    <a class="card" href="dashboard_expos.html">
+      <div class="card-icon" style="background:#fce7f3;">🎪</div>
+      <div>
+        <div class="card-title">Expos & Eventos</div>
+        <div class="card-badge"><span class="badge-dot"></span>En vivo</div>
       </div>
-      <div class="card-footer">
-        <span class="card-tag tag-blue">Google Sheets · Live</span>
-        <span class="card-arrow">→</span>
-      </div>
+      <div class="card-desc">Gestion y resultados de exposiciones y eventos. Ventas por expo, asistencia y rendimiento.</div>
+      <div class="card-link">Abrir dashboard</div>
     </a>
 
   </div>
 </main>
 
-<footer>Sporcks Intelligence · <span id="year"></span></footer>
+<footer>SPORCKS Endurance SL · Uso interno</footer>
 
 <script>
-  document.getElementById('year').textContent = new Date().getFullYear();
-  document.getElementById('fecha').textContent = new Date().toLocaleDateString('es-ES',{weekday:'long',day:'numeric',month:'long'});
+  const d = new Date();
+  document.getElementById('header-date').textContent =
+    d.toLocaleDateString('es-ES', { weekday:'long', day:'numeric', month:'long', year:'numeric' });
 </script>
 </body>
 </html>
