@@ -42,29 +42,140 @@ const COORDS_PAIS = {
 /* ════════════════════════════════════════
    PANEL CLIENTES
    ════════════════════════════════════════ */
+
+// Tramos descuento distribuidores (pares año en curso)
+const DIST_TRAMOS = [
+  { min: 20000, pct: 25 },
+  { min: 15000, pct: 22 },
+  { min: 10000, pct: 20 },
+  { min: 8000,  pct: 18 },
+  { min: 6000,  pct: 17 },
+  { min: 4000,  pct: 16 },
+  { min: 2000,  pct: 15 },
+  { min: 0,     pct: 10 },
+];
+
+function getDescuentoDistribuidor(paresAnyo) {
+  for (const t of DIST_TRAMOS) {
+    if (paresAnyo >= t.min) return t.pct;
+  }
+  return 10;
+}
+
+function getSiguienteTramo(paresAnyo) {
+  for (let i = DIST_TRAMOS.length - 1; i >= 0; i--) {
+    if (DIST_TRAMOS[i].min > paresAnyo) return DIST_TRAMOS[i];
+  }
+  return null;
+}
+
+function getAnyoActual() {
+  return String(new Date().getFullYear());
+}
+
+function buildClienteCard(c, s, sAnyo, i, esDistribuidor) {
+  const [bg, tc] = AVATAR_COLORS[i % AVATAR_COLORS.length];
+  const continente = CONTINENTE[c['Country']] || '—';
+  const logoUrl = c['Logo'] || '';
+  const logoHtml = logoUrl
+    ? `<img src="${logoUrl}" class="cliente-logo" alt="${c['Company']}" onerror="this.style.display='none';this.nextElementSibling.style.display='flex'">` +
+      `<div class="cliente-initials" style="background:${bg};color:${tc};display:none">${getInitials(c['Company'])}</div>`
+    : `<div class="cliente-initials" style="background:${bg};color:${tc}">${getInitials(c['Company'])}</div>`;
+
+  let descuentoHtml = '';
+  let progresoHtml = '';
+
+  if (esDistribuidor) {
+    const paresAnyo = sAnyo.pares || 0;
+    const descActual = getDescuentoDistribuidor(paresAnyo);
+    const siguiente = getSiguienteTramo(paresAnyo);
+    const descuentoCliente = parseNum(c['Descuento']) || 0;
+
+    // Barra de progreso hacia siguiente tramo
+    if (siguiente) {
+      const pct = Math.round(paresAnyo / siguiente.min * 100);
+      const faltan = siguiente.min - paresAnyo;
+      progresoHtml = `
+        <div style="width:100%;margin:8px 0 4px">
+          <div style="display:flex;justify-content:space-between;font-size:10px;color:var(--text-faint);margin-bottom:4px">
+            <span>${paresAnyo.toLocaleString('es')} pares</span>
+            <span>→ ${siguiente.min.toLocaleString('es')} para ${siguiente.pct}%</span>
+          </div>
+          <div style="height:4px;background:var(--surface2);border-radius:2px;overflow:hidden">
+            <div style="width:${Math.min(pct,100)}%;height:100%;background:#1A56E8;border-radius:2px;transition:width 0.5s"></div>
+          </div>
+          <div style="font-size:10px;color:var(--text-faint);margin-top:3px">Faltan ${faltan.toLocaleString('es')} pares</div>
+        </div>`;
+    } else {
+      progresoHtml = `<div style="font-size:10px;color:var(--green-text);background:var(--green-bg);padding:3px 8px;border-radius:10px;margin:6px 0">Tramo máximo alcanzado</div>`;
+    }
+
+    descuentoHtml = `
+      <div style="display:flex;gap:6px;align-items:center;margin-bottom:4px;flex-wrap:wrap;justify-content:center">
+        <span class="badge badge-blue">DISTRIBUIDOR</span>
+        <span class="badge" style="background:#1A1917;color:white">${descActual}% dto.</span>
+        ${descuentoCliente > 0 ? `<span class="badge badge-gray">+${descuentoCliente}% extra</span>` : ''}
+      </div>`;
+  } else {
+    const dto = parseNum(c['Descuento']) || 0;
+    if (dto > 0) {
+      descuentoHtml = `<div style="margin-bottom:4px"><span class="badge badge-gray">${dto}% dto.</span></div>`;
+    }
+    progresoHtml = `<div style="width:100%;height:3px;background:var(--surface2);border-radius:2px;margin:6px 0">
+      <div style="width:0%;height:100%;background:#1A1917;border-radius:2px"></div>
+    </div>`;
+  }
+
+  return `<div class="cliente-card">
+    ${logoHtml}
+    ${descuentoHtml}
+    <div class="cliente-name">${c['Company']}</div>
+    <div class="cliente-country">${c['Country'] || '—'} · ${continente}</div>
+    ${progresoHtml}
+    <div class="cliente-stats">
+      <div class="cliente-stat"><div class="cliente-stat-val">${fmtEur(s.importe)}</div><div class="cliente-stat-label">Ventas</div></div>
+      <div class="cliente-stat"><div class="cliente-stat-val">${s.pares.toLocaleString('es')}</div><div class="cliente-stat-label">Pares</div></div>
+      <div class="cliente-stat"><div class="cliente-stat-val">${s.nFact}</div><div class="cliente-stat-label">Facturas</div></div>
+    </div>
+  </div>`;
+}
+
 function renderClientes() {
   if (!RAW) return;
   const clientes = RAW.clientes || [];
   const fact = RAW.facturacion || [];
-  const orden = document.getElementById('clienteOrden').value;
-  const continenteSel = document.getElementById('clienteContinente').value;
-  const paisSel = document.getElementById('clientePais').value;
-  const buscar = (document.getElementById('clienteBuscar').value || '').toLowerCase();
+  const anyoActual = getAnyoActual();
+  const orden = document.getElementById('clienteOrden') ? document.getElementById('clienteOrden').value : 'ventas';
+  const continenteSel = document.getElementById('clienteContinente') ? document.getElementById('clienteContinente').value : 'all';
+  const paisSel = document.getElementById('clientePais') ? document.getElementById('clientePais').value : 'all';
+  const buscar = document.getElementById('clienteBuscar') ? (document.getElementById('clienteBuscar').value || '').toLowerCase() : '';
 
-  // Enriquecer con stats de facturación
+  // Stats totales por tienda
   const statsMap = {};
-  fact.filter(r => !isExcluida(r)).forEach(r => {
+  fact.filter(r => !['COMPENSADO','RECTIFICATIVA'].includes(String(r['PAGO']||'').toUpperCase().trim())).forEach(r => {
     const t = r['NOMBRE TIENDA']; if (!t) return;
-    if (!statsMap[t]) statsMap[t] = { importe: 0, pares: 0, nFact: 0 };
+    if (!statsMap[t]) statsMap[t] = { importe:0, pares:0, nFact:0 };
     statsMap[t].importe += parseNum(r['IMPORTE']);
-    statsMap[t].pares += parseNum(r['PARES']);
+    statsMap[t].pares   += parseNum(r['PARES']);
     statsMap[t].nFact++;
   });
 
-  // Poblar selector de países
+  // Stats año en curso (para descuento distribuidor)
+  const statsAnyo = {};
+  fact.filter(r => {
+    const excl = ['COMPENSADO','RECTIFICATIVA'].includes(String(r['PAGO']||'').toUpperCase().trim());
+    return !excl && getAnyoFromRow(r) === anyoActual;
+  }).forEach(r => {
+    const t = r['NOMBRE TIENDA']; if (!t) return;
+    if (!statsAnyo[t]) statsAnyo[t] = { pares:0, importe:0 };
+    statsAnyo[t].pares   += parseNum(r['PARES']);
+    statsAnyo[t].importe += parseNum(r['IMPORTE']);
+  });
+
+  // Poblar selector de países (solo primera vez)
   const paisSel_el = document.getElementById('clientePais');
-  const paises = [...new Set(clientes.map(c => c['Country']).filter(Boolean))].sort();
-  if (paisSel_el.options.length <= 1) {
+  if (paisSel_el && paisSel_el.options.length <= 1) {
+    const paises = [...new Set(clientes.map(c => c['Country']).filter(Boolean))].sort();
     paises.forEach(p => { const o = document.createElement('option'); o.value = p; o.textContent = p; paisSel_el.appendChild(o); });
   }
 
@@ -75,48 +186,52 @@ function renderClientes() {
   if (paisSel !== 'all') lista = lista.filter(c => c['Country'] === paisSel);
   if (buscar) lista = lista.filter(c => (c['Company']||'').toLowerCase().includes(buscar));
 
-  // Orden
-  lista.sort((a, b) => {
+  // Separar distribuidores del resto
+  const distribuidores = lista.filter(c => String(c['Notas']||'').toUpperCase().trim() === 'DISTRIBUIDOR');
+  const normales = lista.filter(c => String(c['Notas']||'').toUpperCase().trim() !== 'DISTRIBUIDOR');
+
+  // Ordenar cada grupo
+  const sortFn = (a, b) => {
     const sa = statsMap[a['Company']] || { importe:0, pares:0, nFact:0 };
     const sb = statsMap[b['Company']] || { importe:0, pares:0, nFact:0 };
-    if (orden === 'alfa') return (a['Company']||'').localeCompare(b['Company']||'');
+    if (orden === 'alfa') return (a['Company']||'').localeCompare(b['Company']||'', 'es');
     if (orden === 'pares') return sb.pares - sa.pares;
     if (orden === 'facturas') return sb.nFact - sa.nFact;
     return sb.importe - sa.importe;
-  });
+  };
+  distribuidores.sort(sortFn);
+  normales.sort(sortFn);
 
-  document.getElementById('subtitleClientes').textContent = `${lista.length} clientes · ${new Set(lista.map(c=>c['Country']).filter(Boolean)).size} países`;
+  document.getElementById('subtitleClientes').textContent =
+    `${lista.length} clientes · ${distribuidores.length} distribuidores · ${new Set(lista.map(c=>c['Country']).filter(Boolean)).size} países`;
 
-  const maxImporte = Math.max(...lista.map(c => (statsMap[c['Company']]||{}).importe || 0), 1);
+  let html = '';
 
-  document.getElementById('clienteGrid').innerHTML = lista.length === 0
-    ? '<div class="empty">Sin clientes con estos filtros</div>'
-    : lista.map((c, i) => {
-        const s = statsMap[c['Company']] || { importe:0, pares:0, nFact:0 };
-        const [bg, tc] = AVATAR_COLORS[i % AVATAR_COLORS.length];
-        const continente = CONTINENTE[c['Country']] || '—';
-        const logoUrl = c['Logo'] || '';
-        const logoHtml = logoUrl
-          ? `<img src="${logoUrl}" class="cliente-logo" alt="${c['Company']}" onerror="this.style.display='none';this.nextElementSibling.style.display='flex'">`
-            + `<div class="cliente-initials" style="background:${bg};color:${tc};display:none">${getInitials(c['Company'])}</div>`
-          : `<div class="cliente-initials" style="background:${bg};color:${tc}">${getInitials(c['Company'])}</div>`;
-        const pct = Math.round(s.importe / maxImporte * 100);
-        return `<div class="cliente-card">
-          ${logoHtml}
-          <div class="cliente-name">${c['Company']}</div>
-          <div class="cliente-country">${c['Country']||'—'} · ${continente}</div>
-          <div style="width:100%;height:3px;background:var(--surface2);border-radius:2px;margin:6px 0">
-            <div style="width:${pct}%;height:100%;background:#1A1917;border-radius:2px;transition:width 0.5s"></div>
-          </div>
-          <div class="cliente-stats">
-            <div class="cliente-stat"><div class="cliente-stat-val">${fmtEur(s.importe)}</div><div class="cliente-stat-label">Ventas</div></div>
-            <div class="cliente-stat"><div class="cliente-stat-val">${s.pares.toLocaleString('es')}</div><div class="cliente-stat-label">Pares</div></div>
-            <div class="cliente-stat"><div class="cliente-stat-val">${s.nFact}</div><div class="cliente-stat-label">Facturas</div></div>
-          </div>
-        </div>`;
-      }).join('');
+  // Sección distribuidores
+  if (distribuidores.length > 0) {
+    html += `<div style="margin-bottom:1.5rem">
+      <div style="font-size:11px;font-weight:500;color:var(--text-faint);letter-spacing:0.07em;text-transform:uppercase;margin-bottom:10px">
+        Distribuidores · ${distribuidores.length}
+      </div>
+      <div class="cliente-grid">
+        ${distribuidores.map((c, i) => buildClienteCard(c, statsMap[c['Company']]||{importe:0,pares:0,nFact:0}, statsAnyo[c['Company']]||{pares:0}, i, true)).join('')}
+      </div>
+    </div>`;
+  }
 
-  // Mapa por país (sin API key)
+  // Sección clientes normales
+  if (normales.length > 0) {
+    html += `<div>
+      ${distribuidores.length > 0 ? `<div style="font-size:11px;font-weight:500;color:var(--text-faint);letter-spacing:0.07em;text-transform:uppercase;margin-bottom:10px">Otros clientes · ${normales.length}</div>` : ''}
+      <div class="cliente-grid">
+        ${normales.map((c, i) => buildClienteCard(c, statsMap[c['Company']]||{importe:0,pares:0,nFact:0}, statsAnyo[c['Company']]||{pares:0}, i, false)).join('')}
+      </div>
+    </div>`;
+  }
+
+  if (!html) html = '<div class="empty">Sin clientes con estos filtros</div>';
+
+  document.getElementById('clienteGrid').innerHTML = html;
   renderMapaPaises(lista, statsMap);
 }
 
@@ -418,12 +533,7 @@ function renderComparativas() {
 /* ════════════════════════════════════════
    OVERRIDE renderAll para incluir nuevos paneles
    ════════════════════════════════════════ */
-const _origRenderAll = renderAll;
-function renderAll(data) {
-  _origRenderAll(data);
-  renderClientes();
-  renderComparativas();
-}
+
 
 </script>
 <style>
@@ -1078,6 +1188,8 @@ function renderAll(data) {
   renderFacturacion(fact);
   renderDeuda(fact);
   renderLeads(data.leads||[]);
+  renderClientes();
+  renderComparativas();
   document.getElementById('lastUpdate').textContent=new Date().toLocaleTimeString('es',{hour:'2-digit',minute:'2-digit'});
 }
 
