@@ -6,7 +6,426 @@
 <title>Dashboard B2B</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
-<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js">
+
+/* ════════════════════════════════════════
+   CONTINENTES POR PAÍS
+   ════════════════════════════════════════ */
+const CONTINENTE = {
+  'España':'Europa','Francia':'Europa','Alemania':'Europa','Italia':'Europa','Portugal':'Europa',
+  'Reino Unido':'Europa','Países Bajos':'Europa','Bélgica':'Europa','Suiza':'Europa','Austria':'Europa',
+  'Suecia':'Europa','Noruega':'Europa','Dinamarca':'Europa','Finlandia':'Europa','Polonia':'Europa',
+  'República Checa':'Europa','Hungría':'Europa','Rumanía':'Europa','Grecia':'Europa','Croacia':'Europa',
+  'Eslovenia':'Europa','Bulgaria':'Europa','Irlanda':'Europa','Luxemburgo':'Europa','Malta':'Europa',
+  'Chipre':'Europa','Estonia':'Europa','Letonia':'Europa','Lituania':'Europa','Eslovaquia':'Europa',
+  'USA':'América','Estados Unidos':'América','Canada':'América','Canadá':'América','México':'América',
+  'Brasil':'América','Argentina':'América','Chile':'América','Colombia':'América','Perú':'América',
+  'Australia':'Oceanía','Nueva Zelanda':'Oceanía',
+  'Japón':'Asia','China':'Asia','Corea del Sur':'Asia','India':'Asia','Singapur':'Asia',
+  'Emiratos Árabes':'Asia','Arabia Saudí':'Asia','Tailandia':'Asia','Filipinas':'Asia',
+  'Sudáfrica':'África','Marruecos':'África','Egipto':'África',
+};
+
+const COORDS_PAIS = {
+  'España':[40.4,-3.7],'Francia':[46.2,2.2],'Alemania':[51.2,10.4],'Italia':[41.9,12.5],
+  'Portugal':[39.4,-8.2],'Reino Unido':[55.4,-3.4],'Países Bajos':[52.1,5.3],'Bélgica':[50.5,4.5],
+  'Suiza':[46.8,8.2],'Austria':[47.5,14.5],'Suecia':[60.1,18.6],'Noruega':[60.5,8.5],
+  'Dinamarca':[56.3,9.5],'Finlandia':[61.9,25.7],'Polonia':[51.9,19.1],'Grecia':[39.1,21.8],
+  'Irlanda':[53.4,-8.2],'Croacia':[45.1,15.2],'Australia':[-25.3,133.8],'Nueva Zelanda':[-40.9,174.9],
+  'USA':[37.1,-95.7],'Estados Unidos':[37.1,-95.7],'Canadá':[56.1,-106.3],'Canada':[56.1,-106.3],
+  'México':[23.6,-102.5],'Brasil':[-14.2,-51.9],'Argentina':[-38.4,-63.6],
+  'Japón':[36.2,138.3],'China':[35.9,104.2],'Corea del Sur':[35.9,127.8],
+  'Singapur':[1.4,103.8],'India':[20.6,78.9],'Filipinas':[12.9,121.8],
+  'Sudáfrica':[-30.6,22.9],'Marruecos':[31.8,-7.1],
+};
+
+/* ════════════════════════════════════════
+   PANEL CLIENTES
+   ════════════════════════════════════════ */
+function renderClientes() {
+  if (!RAW) return;
+  const clientes = RAW.clientes || [];
+  const fact = RAW.facturacion || [];
+  const orden = document.getElementById('clienteOrden').value;
+  const continenteSel = document.getElementById('clienteContinente').value;
+  const paisSel = document.getElementById('clientePais').value;
+  const buscar = (document.getElementById('clienteBuscar').value || '').toLowerCase();
+
+  // Enriquecer con stats de facturación
+  const statsMap = {};
+  fact.filter(r => !isExcluida(r)).forEach(r => {
+    const t = r['NOMBRE TIENDA']; if (!t) return;
+    if (!statsMap[t]) statsMap[t] = { importe: 0, pares: 0, nFact: 0 };
+    statsMap[t].importe += parseNum(r['IMPORTE']);
+    statsMap[t].pares += parseNum(r['PARES']);
+    statsMap[t].nFact++;
+  });
+
+  // Poblar selector de países
+  const paisSel_el = document.getElementById('clientePais');
+  const paises = [...new Set(clientes.map(c => c['Country']).filter(Boolean))].sort();
+  if (paisSel_el.options.length <= 1) {
+    paises.forEach(p => { const o = document.createElement('option'); o.value = p; o.textContent = p; paisSel_el.appendChild(o); });
+  }
+
+  let lista = clientes.filter(c => c['Company']);
+
+  // Filtros
+  if (continenteSel !== 'all') lista = lista.filter(c => CONTINENTE[c['Country']] === continenteSel);
+  if (paisSel !== 'all') lista = lista.filter(c => c['Country'] === paisSel);
+  if (buscar) lista = lista.filter(c => (c['Company']||'').toLowerCase().includes(buscar));
+
+  // Orden
+  lista.sort((a, b) => {
+    const sa = statsMap[a['Company']] || { importe:0, pares:0, nFact:0 };
+    const sb = statsMap[b['Company']] || { importe:0, pares:0, nFact:0 };
+    if (orden === 'alfa') return (a['Company']||'').localeCompare(b['Company']||'');
+    if (orden === 'pares') return sb.pares - sa.pares;
+    if (orden === 'facturas') return sb.nFact - sa.nFact;
+    return sb.importe - sa.importe;
+  });
+
+  document.getElementById('subtitleClientes').textContent = `${lista.length} clientes · ${new Set(lista.map(c=>c['Country']).filter(Boolean)).size} países`;
+
+  const maxImporte = Math.max(...lista.map(c => (statsMap[c['Company']]||{}).importe || 0), 1);
+
+  document.getElementById('clienteGrid').innerHTML = lista.length === 0
+    ? '<div class="empty">Sin clientes con estos filtros</div>'
+    : lista.map((c, i) => {
+        const s = statsMap[c['Company']] || { importe:0, pares:0, nFact:0 };
+        const [bg, tc] = AVATAR_COLORS[i % AVATAR_COLORS.length];
+        const continente = CONTINENTE[c['Country']] || '—';
+        const logoUrl = c['Logo'] || '';
+        const logoHtml = logoUrl
+          ? `<img src="${logoUrl}" class="cliente-logo" alt="${c['Company']}" onerror="this.style.display='none';this.nextElementSibling.style.display='flex'">`
+            + `<div class="cliente-initials" style="background:${bg};color:${tc};display:none">${getInitials(c['Company'])}</div>`
+          : `<div class="cliente-initials" style="background:${bg};color:${tc}">${getInitials(c['Company'])}</div>`;
+        const pct = Math.round(s.importe / maxImporte * 100);
+        return `<div class="cliente-card">
+          ${logoHtml}
+          <div class="cliente-name">${c['Company']}</div>
+          <div class="cliente-country">${c['Country']||'—'} · ${continente}</div>
+          <div style="width:100%;height:3px;background:var(--surface2);border-radius:2px;margin:6px 0">
+            <div style="width:${pct}%;height:100%;background:#1A1917;border-radius:2px;transition:width 0.5s"></div>
+          </div>
+          <div class="cliente-stats">
+            <div class="cliente-stat"><div class="cliente-stat-val">${fmtEur(s.importe)}</div><div class="cliente-stat-label">Ventas</div></div>
+            <div class="cliente-stat"><div class="cliente-stat-val">${s.pares.toLocaleString('es')}</div><div class="cliente-stat-label">Pares</div></div>
+            <div class="cliente-stat"><div class="cliente-stat-val">${s.nFact}</div><div class="cliente-stat-label">Facturas</div></div>
+          </div>
+        </div>`;
+      }).join('');
+
+  // Mapa por país (sin API key)
+  renderMapaPaises(lista, statsMap);
+}
+
+// Cache de geocoding para no repetir peticiones
+const _geocodeCache = {};
+
+async function geocodeAddress(address) {
+  if (_geocodeCache[address]) return _geocodeCache[address];
+  try {
+    const resp = await fetch(
+      `https://maps.googleapis.com/maps/api/geocode/json?address=${encodeURIComponent(address)}&key=AIzaSyDLNISJrltzvwz4vK2XEbO0fneUbaT0VKc`
+    );
+    const data = await resp.json();
+    if (data.status === 'OK' && data.results[0]) {
+      const loc = data.results[0].geometry.location;
+      _geocodeCache[address] = { lat: loc.lat, lng: loc.lng };
+      return _geocodeCache[address];
+    }
+  } catch(e) {}
+  return null;
+}
+
+let _gmap = null;
+let _mapMarkers = [];
+
+function clearMapMarkers() {
+  _mapMarkers.forEach(m => m.setMap(null));
+  _mapMarkers = [];
+}
+
+async function renderMapaPaises(clientes, statsMap) {
+  const el = document.getElementById('mapaClientes');
+  document.getElementById('mapNote').textContent = `${clientes.length} clientes geocodificados`;
+
+  // Esperar a que Google Maps cargue
+  let attempts = 0;
+  while (typeof google === 'undefined' && attempts < 20) {
+    await new Promise(r => setTimeout(r, 300));
+    attempts++;
+  }
+  if (typeof google === 'undefined') {
+    el.innerHTML = '<div style="padding:2rem;text-align:center;color:var(--text-faint);font-size:13px">Google Maps no disponible</div>';
+    return;
+  }
+
+  // Inicializar mapa si no existe
+  if (!_gmap) {
+    _gmap = new google.maps.Map(el, {
+      zoom: 3,
+      center: { lat: 30, lng: 10 },
+      mapTypeId: 'roadmap',
+      styles: [
+        { featureType:'all', elementType:'geometry', stylers:[{color:'#F5F4F0'}] },
+        { featureType:'water', elementType:'geometry', stylers:[{color:'#D4E6F1'}] },
+        { featureType:'road', elementType:'geometry', stylers:[{color:'#FFFFFF'}] },
+        { featureType:'road', elementType:'geometry.stroke', stylers:[{color:'#E0DEDA'}] },
+        { featureType:'administrative.country', elementType:'geometry.stroke', stylers:[{color:'#B0AEA9'},{weight:1}] },
+        { featureType:'administrative', elementType:'labels.text.fill', stylers:[{color:'#7A7873'}] },
+        { featureType:'poi', elementType:'labels', stylers:[{visibility:'off'}] },
+        { featureType:'transit', elementType:'labels', stylers:[{visibility:'off'}] },
+      ],
+      disableDefaultUI: false,
+      zoomControl: true,
+      streetViewControl: false,
+      mapTypeControl: false,
+      fullscreenControl: true,
+    });
+  } else {
+    el.style.height = '460px';
+    google.maps.event.trigger(_gmap, 'resize');
+  }
+
+  clearMapMarkers();
+
+  const maxImporte = Math.max(...clientes.map(c => (statsMap[c['Company']] || {}).importe || 0), 1);
+  let geocoded = 0;
+
+  // Geocodificar en paralelo (máx 10 simultáneos)
+  const chunks = [];
+  for (let i = 0; i < clientes.length; i += 10) chunks.push(clientes.slice(i, i+10));
+
+  for (const chunk of chunks) {
+    await Promise.all(chunk.map(async (c) => {
+      const parts = [c['Address1'], c['City'], c['Postal Code'], c['Country']].filter(Boolean);
+      if (!parts.length) return;
+      const address = parts.join(', ');
+      const coords = await geocodeAddress(address);
+      if (!coords) return;
+      geocoded++;
+
+      const s = statsMap[c['Company']] || { importe:0, pares:0, nFact:0 };
+      const pct = s.importe / maxImporte;
+      const size = Math.round(10 + pct * 22);
+
+      const marker = new google.maps.Marker({
+        position: coords,
+        map: _gmap,
+        title: c['Company'],
+        icon: {
+          path: google.maps.SymbolPath.CIRCLE,
+          scale: size,
+          fillColor: '#1A1917',
+          fillOpacity: 0.15 + pct * 0.7,
+          strokeColor: '#1A1917',
+          strokeWeight: 1.5,
+        },
+      });
+
+      const infoHtml = `
+        <div style="font-family:DM Sans,sans-serif;padding:4px;min-width:160px">
+          <div style="font-weight:500;font-size:13px;margin-bottom:4px">${c['Company']}</div>
+          <div style="font-size:11px;color:#7A7873;margin-bottom:6px">${c['City']||''}, ${c['Country']||''}</div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:4px">
+            <div><div style="font-size:12px;font-weight:500">${fmtEur(s.importe)}</div><div style="font-size:10px;color:#B0AEA9">Ventas</div></div>
+            <div><div style="font-size:12px;font-weight:500">${s.pares.toLocaleString('es')}</div><div style="font-size:10px;color:#B0AEA9">Pares</div></div>
+          </div>
+        </div>`;
+
+      const infoWindow = new google.maps.InfoWindow({ content: infoHtml });
+      marker.addListener('click', () => infoWindow.open(_gmap, marker));
+      _mapMarkers.push(marker);
+    }));
+  }
+
+  document.getElementById('mapNote').textContent = `${geocoded} de ${clientes.length} clientes ubicados`;
+
+  // Ajustar bounds al contenido
+  if (_mapMarkers.length > 0) {
+    const bounds = new google.maps.LatLngBounds();
+    _mapMarkers.forEach(m => bounds.extend(m.getPosition()));
+    _gmap.fitBounds(bounds);
+  }
+}
+
+/* ════════════════════════════════════════
+   PANEL COMPARATIVAS
+   ════════════════════════════════════════ */
+let compMode = 'años', compMetric = 'importe', compChart = null;
+
+const COMP_COLORS = ['#1A1917','#378ADD','#1E7C4A','#B45309','#8B5CF6','#E24B4A'];
+const COMP_LABELS = { importe:'Facturación (€)', pares:'Pares vendidos', facturas:'Nº Facturas' };
+
+function setCompMode(mode, btn) {
+  compMode = mode;
+  document.querySelectorAll('.comp-tab').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  renderComparativas();
+}
+
+function setCompMetric(metric, btn) {
+  compMetric = metric;
+  document.querySelectorAll('.comp-metric-sel .filter-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  renderComparativas();
+}
+
+function getVal(rows, metric) {
+  if (metric === 'importe') return rows.reduce((s,r) => s+parseNum(r['IMPORTE']),0);
+  if (metric === 'pares') return rows.reduce((s,r) => s+parseNum(r['PARES']),0);
+  return rows.length;
+}
+
+function fmtVal(v, metric) {
+  if (metric === 'importe') return fmtEur(v);
+  return Math.round(v).toLocaleString('es');
+}
+
+function renderComparativas() {
+  if (!RAW) return;
+  const fact = (RAW.facturacion || []).filter(r => !isExcluida(r));
+
+  const MESES_ORDEN = ['ENERO','FEBRERO','MARZO','ABRIL','MAYO','JUNIO','JULIO','AGOSTO','SEPTIEMBRE','OCTUBRE','NOVIEMBRE','DICIEMBRE'];
+  const MESES_ABBR  = ['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic'];
+  const QS = ['1Q','2Q','3Q','4Q'];
+
+  let labels = [], series = {}, tableRows = [];
+
+  if (compMode === 'años') {
+    const years = [...new Set(fact.map(r => getAnyoFromRow(r)).filter(Boolean))].sort();
+    labels = MESES_ORDEN;
+    years.forEach(y => {
+      series[y] = MESES_ORDEN.map(mes => {
+        const rows = fact.filter(r => getAnyoFromRow(r) === y && String(r['MES']||'').toUpperCase().trim() === mes);
+        return getVal(rows, compMetric);
+      });
+    });
+    // Tabla: cada fila = mes, columnas = años
+    tableRows = MESES_ORDEN.map((mes, i) => {
+      const vals = years.map(y => series[y][i]);
+      return { label: MESES_ABBR[i], vals, years };
+    });
+    document.getElementById('compChartTitle').textContent = `${COMP_LABELS[compMetric]} mensual por año`;
+    document.getElementById('compTableTitle').textContent = 'Tabla mensual comparada';
+  }
+
+  else if (compMode === 'trimestres') {
+    const years = [...new Set(fact.map(r => getAnyoFromRow(r)).filter(Boolean))].sort();
+    labels = QS.map(q => q.replace('Q','') + 'T');
+    years.forEach(y => {
+      series[y] = QS.map(q => {
+        const rows = fact.filter(r => getAnyoFromRow(r) === y && String(r['TRIMESTRE']||'').trim() === q);
+        return getVal(rows, compMetric);
+      });
+    });
+    tableRows = QS.map((q, i) => {
+      const vals = years.map(y => series[y][i]);
+      return { label: q.replace('Q','') + 'T', vals, years };
+    });
+    document.getElementById('compChartTitle').textContent = `${COMP_LABELS[compMetric]} por trimestre y año`;
+    document.getElementById('compTableTitle').textContent = 'Tabla trimestral comparada';
+  }
+
+  else if (compMode === 'meses') {
+    // Comparar cada mes natural entre todos los años
+    const years = [...new Set(fact.map(r => getAnyoFromRow(r)).filter(Boolean))].sort();
+    labels = MESES_ABBR;
+    years.forEach(y => {
+      series[y] = MESES_ORDEN.map(mes => {
+        const rows = fact.filter(r => getAnyoFromRow(r) === y && String(r['MES']||'').toUpperCase().trim() === mes);
+        return getVal(rows, compMetric);
+      });
+    });
+    tableRows = MESES_ORDEN.map((mes, i) => {
+      const vals = years.map(y => series[y][i]);
+      // Variación YoY si hay 2+ años
+      return { label: MESES_ABBR[i], vals, years };
+    });
+    document.getElementById('compChartTitle').textContent = `${COMP_LABELS[compMetric]} mensual — todos los años`;
+    document.getElementById('compTableTitle').textContent = 'Comparativa mes a mes';
+  }
+
+  const seriesKeys = Object.keys(series);
+
+  // Destruir chart anterior
+  if (compChart) { compChart.destroy(); compChart = null; }
+
+  const ctx = document.getElementById('compChart').getContext('2d');
+  compChart = new Chart(ctx, {
+    type: 'bar',
+    data: {
+      labels,
+      datasets: seriesKeys.map((key, i) => ({
+        label: key,
+        data: series[key],
+        backgroundColor: COMP_COLORS[i % COMP_COLORS.length],
+        borderRadius: 4,
+        borderSkipped: false,
+      }))
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: {
+        legend: { display: false },
+        tooltip: { callbacks: { label: v => `${v.dataset.label}: ${fmtVal(v.raw, compMetric)}` } }
+      },
+      scales: {
+        x: { grid: { display: false }, ticks: { font: { family: 'DM Mono', size: 11 }, color: '#B0AEA9' } },
+        y: { grid: { color: 'rgba(0,0,0,0.04)' }, border: { display: false }, ticks: { font: { family: 'DM Mono', size: 11 }, color: '#B0AEA9', callback: v => fmtVal(v, compMetric) } }
+      }
+    }
+  });
+
+  // Leyenda
+  document.getElementById('compLegend').innerHTML = seriesKeys.map((k, i) =>
+    `<div class="comp-legend-item"><div class="comp-legend-dot" style="background:${COMP_COLORS[i%COMP_COLORS.length]}"></div>${k}</div>`
+  ).join('');
+
+  // Tabla
+  if (tableRows.length === 0 || seriesKeys.length === 0) {
+    document.getElementById('compTable').innerHTML = '<div class="empty">Sin datos suficientes para comparar</div>';
+    return;
+  }
+  const totalRow = { label: 'TOTAL', vals: seriesKeys.map(y => tableRows.reduce((s,r) => s + r.vals[seriesKeys.indexOf(y)], 0)), years: seriesKeys };
+  const allRows = [...tableRows, totalRow];
+
+  document.getElementById('compTable').innerHTML = `<div class="table-wrap"><table class="comp-table">
+    <thead><tr><th>Período</th>${seriesKeys.map(y=>`<th>${y}</th>`).join('')}${seriesKeys.length>=2?'<th>Var.</th>':''}</tr></thead>
+    <tbody>${allRows.map(row => {
+      const isTotal = row.label === 'TOTAL';
+      const yoy = seriesKeys.length >= 2
+        ? (() => {
+            const prev = row.vals[row.vals.length-2] || 0;
+            const curr = row.vals[row.vals.length-1] || 0;
+            if (prev === 0) return '—';
+            const pct = ((curr - prev) / prev * 100).toFixed(1);
+            const cls = pct >= 0 ? 'up' : 'down';
+            return `<td class="${cls}" style="font-family:'DM Mono',monospace;font-size:11px">${pct>=0?'+':''}${pct}%</td>`;
+          })()
+        : '';
+      return `<tr style="${isTotal?'font-weight:500;border-top:2px solid var(--border-strong)':''}">
+        <td style="font-family:'DM Mono',monospace;font-size:11px">${row.label}</td>
+        ${row.vals.map(v=>`<td style="font-family:'DM Mono',monospace;font-size:11px">${fmtVal(v,compMetric)}</td>`).join('')}
+        ${seriesKeys.length>=2?yoy:''}
+      </tr>`;
+    }).join('')}</tbody>
+  </table></div>`;
+}
+
+/* ════════════════════════════════════════
+   OVERRIDE renderAll para incluir nuevos paneles
+   ════════════════════════════════════════ */
+const _origRenderAll = renderAll;
+function renderAll(data) {
+  _origRenderAll(data);
+  renderClientes();
+  renderComparativas();
+}
+
+</script>
 <style>
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 :root {
@@ -114,7 +533,41 @@ body { font-family: 'DM Sans', sans-serif; background: var(--bg); color: var(--t
   .metrics { grid-template-columns: repeat(2, 1fr); }
   .act-grid { grid-template-columns: 1fr; }
 }
+
+/* CLIENTES PANEL */
+.cliente-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 12px; }
+.cliente-card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 1.25rem; box-shadow: var(--shadow); display: flex; flex-direction: column; align-items: center; text-align: center; transition: transform 0.15s, box-shadow 0.15s; cursor: default; }
+.cliente-card:hover { transform: translateY(-2px); box-shadow: 0 4px 12px rgba(0,0,0,0.08); }
+.cliente-logo { width: 56px; height: 56px; border-radius: 12px; object-fit: contain; background: var(--surface2); border: 1px solid var(--border); margin-bottom: 10px; }
+.cliente-initials { width: 56px; height: 56px; border-radius: 12px; display: flex; align-items: center; justify-content: center; font-size: 16px; font-weight: 500; margin-bottom: 10px; flex-shrink: 0; }
+.cliente-name { font-size: 13px; font-weight: 500; color: var(--text); margin-bottom: 2px; line-height: 1.3; }
+.cliente-country { font-size: 11px; color: var(--text-faint); margin-bottom: 8px; }
+.cliente-stats { display: flex; gap: 12px; justify-content: center; margin-top: 6px; width: 100%; }
+.cliente-stat { text-align: center; }
+.cliente-stat-val { font-size: 13px; font-weight: 500; font-family: 'DM Mono', monospace; color: var(--text); }
+.cliente-stat-label { font-size: 10px; color: var(--text-faint); margin-top: 1px; }
+.cliente-toolbar { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; margin-bottom: 1rem; }
+.tool-select { padding: 6px 26px 6px 10px; border-radius: var(--radius-sm); border: 1px solid var(--border-strong); background: var(--surface); color: var(--text); font-size: 12px; font-family: 'DM Sans', sans-serif; cursor: pointer; appearance: none; -webkit-appearance: none; background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 16 16' fill='none' stroke='%237A7873' stroke-width='1.5'%3E%3Cpath d='M4 6l4 4 4-4'/%3E%3C/svg%3E"); background-repeat: no-repeat; background-position: right 8px center; }
+.tool-select:focus { outline: none; border-color: var(--text); }
+.map-placeholder { background: var(--surface2); border-radius: var(--radius-sm); display: flex; align-items: center; justify-content: center; color: var(--text-faint); font-size: 13px; }
+
+/* COMPARATIVAS PANEL */
+.comp-tabs { display: flex; gap: 0; border: 1px solid var(--border-strong); border-radius: var(--radius-sm); overflow: hidden; width: fit-content; margin-bottom: 1.25rem; }
+.comp-tab { padding: 7px 16px; font-size: 12px; font-family: 'DM Sans', sans-serif; cursor: pointer; border: none; background: transparent; color: var(--text-muted); transition: all 0.15s; border-right: 1px solid var(--border-strong); }
+.comp-tab:last-child { border-right: none; }
+.comp-tab:hover { background: var(--surface2); color: var(--text); }
+.comp-tab.active { background: var(--text); color: white; }
+.comp-metric-sel { display: flex; gap: 6px; margin-bottom: 1.25rem; flex-wrap: wrap; }
+.comp-legend { display: flex; gap: 16px; flex-wrap: wrap; margin-top: 10px; }
+.comp-legend-item { display: flex; align-items: center; gap: 6px; font-size: 12px; color: var(--text-muted); }
+.comp-legend-dot { width: 10px; height: 10px; border-radius: 2px; flex-shrink: 0; }
+.comp-table { width: 100%; border-collapse: collapse; font-size: 12px; margin-top: 1rem; }
+.comp-table th { text-align: left; padding: 6px 10px; color: var(--text-faint); font-weight: 400; font-size: 11px; border-bottom: 1px solid var(--border); }
+.comp-table td { padding: 7px 10px; border-bottom: 1px solid var(--border); color: var(--text); }
+.comp-table tr:last-child td { border-bottom: none; }
+.comp-table .up { color: var(--green); } .comp-table .down { color: var(--red); }
 </style>
+<script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyDLNISJrltzvwz4vK2XEbO0fneUbaT0VKc&libraries=places" async defer></script>
 </head>
 <body>
 
@@ -139,6 +592,14 @@ body { font-family: 'DM Sans', sans-serif; background: var(--bg); color: var(--t
   <div class="nav-item" onclick="showView('leads',this)">
     <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M2 14l3-4 3 2 3-5 3 3"/></svg>
     <span>Leads</span>
+  </div>
+  <div class="nav-item" onclick="showView('clientes',this)">
+    <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="6" cy="5" r="3"/><path d="M1 14c0-2.761 2.239-5 5-5"/><circle cx="12" cy="10" r="2.5"/><path d="M9.5 14c0-1.38 1.12-2.5 2.5-2.5s2.5 1.12 2.5 2.5"/></svg>
+    <span>Clientes</span>
+  </div>
+  <div class="nav-item" onclick="showView('comparativas',this)">
+    <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M2 12V8M6 12V5M10 12V7M14 12V3"/></svg>
+    <span>Comparativas</span>
   </div>
   <div class="sidebar-footer">
     <p class="last-update" id="lastUpdate">—</p>
@@ -233,6 +694,71 @@ body { font-family: 'DM Sans', sans-serif; background: var(--bg); color: var(--t
     <div class="card">
       <div class="card-header"><span class="card-title">Todos los leads</span><span class="card-count" id="leadsCount">—</span></div>
       <div class="table-wrap" id="leadsTabla"><div class="empty">Sin leads registrados aún</div></div>
+    </div>
+  </div>
+
+  <!-- CLIENTES -->
+  <div id="view-clientes" class="view">
+    <div class="page-header">
+      <div><h1 class="page-title">Clientes</h1><p class="page-sub" id="subtitleClientes">—</p></div>
+    </div>
+    <div class="card">
+      <div class="cliente-toolbar">
+        <select class="tool-select" id="clienteOrden" onchange="renderClientes()">
+          <option value="ventas">Ordenar por ventas</option>
+          <option value="alfa">Ordenar A–Z</option>
+          <option value="pares">Ordenar por pares</option>
+          <option value="facturas">Ordenar por nº facturas</option>
+        </select>
+        <select class="tool-select" id="clienteContinente" onchange="renderClientes()">
+          <option value="all">Todos los continentes</option>
+          <option value="Europa">Europa</option>
+          <option value="América">América</option>
+          <option value="Asia">Asia</option>
+          <option value="Oceanía">Oceanía</option>
+          <option value="África">África</option>
+        </select>
+        <select class="tool-select" id="clientePais" onchange="renderClientes()">
+          <option value="all">Todos los países</option>
+        </select>
+        <input type="text" id="clienteBuscar" placeholder="Buscar cliente..." oninput="renderClientes()"
+          style="padding:6px 10px;border-radius:var(--radius-sm);border:1px solid var(--border-strong);background:var(--surface);color:var(--text);font-size:12px;font-family:'DM Sans',sans-serif;width:180px;">
+      </div>
+      <div class="cliente-grid" id="clienteGrid"><div class="empty">Cargando...</div></div>
+    </div>
+    <div class="card">
+      <div class="card-header"><span class="card-title">Distribución geográfica</span><span class="card-count" id="mapNote" style="font-size:11px;color:var(--text-faint)"></span></div>
+      <div id="mapaClientes" style="position:relative;height:460px;border-radius:var(--radius-sm);overflow:hidden"></div>
+    </div>
+  </div>
+
+  <!-- COMPARATIVAS -->
+  <div id="view-comparativas" class="view">
+    <div class="page-header">
+      <div><h1 class="page-title">Comparativas</h1><p class="page-sub">Compara períodos lado a lado</p></div>
+    </div>
+
+    <div class="comp-tabs">
+      <button class="comp-tab active" onclick="setCompMode('años',this)">Por año</button>
+      <button class="comp-tab" onclick="setCompMode('trimestres',this)">Por trimestre</button>
+      <button class="comp-tab" onclick="setCompMode('meses',this)">Por mes</button>
+    </div>
+
+    <div class="comp-metric-sel">
+      <button class="filter-btn active" onclick="setCompMetric('importe',this)">Facturación</button>
+      <button class="filter-btn" onclick="setCompMetric('pares',this)">Pares</button>
+      <button class="filter-btn" onclick="setCompMetric('facturas',this)">Nº Facturas</button>
+    </div>
+
+    <div class="card">
+      <div class="card-header"><span class="card-title" id="compChartTitle">Facturación por año</span></div>
+      <div style="position:relative;height:260px"><canvas id="compChart" role="img" aria-label="Gráfico comparativo">Comparativa.</canvas></div>
+      <div class="comp-legend" id="compLegend"></div>
+    </div>
+
+    <div class="card">
+      <div class="card-header"><span class="card-title" id="compTableTitle">Tabla comparativa</span></div>
+      <div class="table-wrap" id="compTable"><div class="empty">—</div></div>
     </div>
   </div>
 </main>
