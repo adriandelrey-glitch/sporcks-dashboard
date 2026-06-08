@@ -348,9 +348,9 @@ function getUbic(nombre) {
 }
 
 function stockClass(stock, min) {
-  if (stock <= 0)          return 's-sin';
-  if (stock <= min)        return 's-crit';
-  if (stock <= min * 1.5)  return 's-bajo';
+  if (stock <= 0)           return 's-sin';
+  if (stock < min * 0.5)    return 's-crit';  // por debajo del 50% -> critico
+  if (stock <= min)         return 's-bajo';  // entre 50% y 100% -> bajo
   return 's-ok';
 }
 
@@ -503,7 +503,8 @@ function renderReposicion() {
     .filter(s => s.en_tienda)
     .map(s => {
       const stock  = stockMap[s.sku] || 0;
-      const aPedir = Math.max(0, s.stock_minimo - stock);
+      const umbral = s.stock_minimo * 0.5;
+      const aPedir = stock < umbral ? Math.max(0, s.stock_minimo - stock) : 0;
       return { ...s, stock, aPedir };
     })
     .filter(s => s.aPedir > 0); // solo los que hay que pedir
