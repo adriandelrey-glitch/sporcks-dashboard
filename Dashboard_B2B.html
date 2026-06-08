@@ -874,7 +874,7 @@ body { font-family: 'DM Sans', sans-serif; background: var(--bg); color: var(--t
 </main>
 
 <script>
-const SHEET_URL = 'https://script.google.com/macros/s/AKfycbyQVkt8OY2vmEvCiakEgTraldkztakN9qjW53TXnR1fNrqNDf4eeYYfoAliwzoeQKjs/exec';
+const SHEET_URL = 'https://script.google.com/macros/s/AKfycby8yHLN98NaItywcw_-RuQ_WAEYrSCFG7wCFlmZGVHPJArzDY6x_yGannHWqPEbX8QI/exec';
 let RAW = null, activeFilter = 'all', activeQYear = 'all', activeEstadoFact = 'all', chartMes = null;
 
 const AVATAR_COLORS = [['#EBF0FD','#1A3FA8'],['#E6F5ED','#155C36'],['#F3F0FD','#4C3BAF'],['#FEF3E2','#92400E'],['#FEF2F2','#9B1C1C'],['#E6F5ED','#0F5E5E']];
@@ -1193,22 +1193,44 @@ function renderAll(data) {
   document.getElementById('lastUpdate').textContent=new Date().toLocaleTimeString('es',{hour:'2-digit',minute:'2-digit'});
 }
 
-async function loadData() {
-  const icon=document.getElementById('refreshIcon');
-  icon.style.animation='spin 1s linear infinite';
-  document.getElementById('errorBox').style.display='none';
-  try {
-    const res=await fetch(SHEET_URL);
-    if(!res.ok) throw new Error('HTTP '+res.status);
-    RAW=await res.json();
+function loadData() {
+  const icon = document.getElementById('refreshIcon');
+  icon.style.animation = 'spin 1s linear infinite';
+  document.getElementById('errorBox').style.display = 'none';
+
+  // Limpiar callback anterior
+  const oldScript = document.getElementById('jsonp-script');
+  if (oldScript) oldScript.remove();
+  if (window._jsonpTimeout) clearTimeout(window._jsonpTimeout);
+
+  // Timeout de 15 segundos
+  window._jsonpTimeout = setTimeout(() => {
+    icon.style.animation = '';
+    const box = document.getElementById('errorBox');
+    box.textContent = 'Tiempo de espera agotado. Comprueba la URL del script y que está desplegado como "Cualquier usuario".';
+    box.style.display = 'block';
+  }, 15000);
+
+  // Callback global
+  window._sheetsCallback = function(data) {
+    clearTimeout(window._jsonpTimeout);
+    icon.style.animation = '';
+    RAW = data;
     renderAll(RAW);
-  } catch(e) {
-    const box=document.getElementById('errorBox');
-    box.textContent='No se pudo conectar con Google Sheets. Comprueba que el script está desplegado como "Cualquier usuario".';
-    box.style.display='block';
-  } finally {
-    icon.style.animation='';
-  }
+  };
+
+  // Inyectar script JSONP
+  const script = document.createElement('script');
+  script.id = 'jsonp-script';
+  script.src = SHEET_URL + '?callback=_sheetsCallback';
+  script.onerror = function() {
+    clearTimeout(window._jsonpTimeout);
+    icon.style.animation = '';
+    const box = document.getElementById('errorBox');
+    box.textContent = 'No se pudo conectar con Google Sheets. Comprueba que el script está desplegado como "Cualquier usuario".';
+    box.style.display = 'block';
+  };
+  document.head.appendChild(script);
 }
 
 loadData();
