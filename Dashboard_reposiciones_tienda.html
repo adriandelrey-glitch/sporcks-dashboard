@@ -347,11 +347,11 @@ function getUbic(nombre) {
   return sku ? (sku.ubicacion_fisica || null) : null;
 }
 
-function stockClass(stock, min) {
-  if (stock <= 0)           return 's-sin';
-  if (stock < min * 0.5)    return 's-crit';  // por debajo del 50% -> critico
-  if (stock <= min)         return 's-bajo';  // entre 50% y 100% -> bajo
-  return 's-ok';
+function getMin(s) {
+  // Si está en almacén, mínimo fijo independiente del tipo
+  const sinTalla = ['Bidones','Otros'];
+  if (s.ubicacion === 'almacen') return sinTalla.includes(s.tipo_expositor) ? 3 : 2;
+  return s.stock_minimo;
 }
 
 // ── Card builder ──────────────────────────────────────────
@@ -363,6 +363,13 @@ function makeCard(model) {
   const safeKey = encodeURIComponent(model.nombre);
 
   // Sort skus by talla
+function stockClass(stock, min) {
+  if (stock <= 0)        return 's-sin';
+  if (stock < min * 0.5) return 's-crit';
+  if (stock <= min)      return 's-bajo';
+  return 's-ok';
+}
+
   const sorted = [...model.skus].sort((a,b) =>
     TALLAS_ORDER.indexOf(a.size.toUpperCase()) - TALLAS_ORDER.indexOf(b.size.toUpperCase())
   );
@@ -370,7 +377,8 @@ function makeCard(model) {
   let hasAlert = false;
   const sizesHtml = sorted.map(s => {
     const stock = stockMap[s.sku] !== undefined ? stockMap[s.sku] : '—';
-    const cls   = typeof stock === 'number' ? stockClass(stock, s.stock_minimo) : 's-ok';
+    const min   = getMin(s);
+    const cls   = typeof stock === 'number' ? stockClass(stock, min) : 's-ok';
     if (cls !== 's-ok') hasAlert = true;
     return `<tr><td class="td-size">${s.size||'—'}</td><td class="td-stock ${cls}">${stock}</td></tr>`;
   }).join('');
@@ -503,9 +511,10 @@ function renderReposicion() {
     .filter(s => s.en_tienda)
     .map(s => {
       const stock  = stockMap[s.sku] || 0;
-      const umbral = s.stock_minimo * 0.5;
-      const aPedir = stock < umbral ? Math.max(0, s.stock_minimo - stock) : 0;
-      return { ...s, stock, aPedir };
+      const min    = getMin(s);
+      const umbral = min * 0.5;
+      const aPedir = stock < umbral ? Math.max(0, min - stock) : 0;
+      return { ...s, stock, stock_minimo: min, aPedir };
     })
     .filter(s => s.aPedir > 0); // solo los que hay que pedir
 
